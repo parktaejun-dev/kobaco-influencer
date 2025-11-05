@@ -57,17 +57,26 @@ pricing_method = st.sidebar.radio(
 def extract_channel_id(url):
     """
     유튜브 URL에서 채널 ID를 추출하는 함수
-    여러 형식의 URL을 지원합니다
+    한글 등 유니코드 문자를 포함한 여러 형식의 URL을 지원합니다
     """
-    # 채널 ID 패턴들
-    patterns = [
-        r'youtube\.com/channel/([a-zA-Z0-9_-]+)',  # /channel/ID 형식
-        r'youtube\.com/@([a-zA-Z0-9_-]+)',          # /@username 형식
-        r'youtube\.com/c/([a-zA-Z0-9_-]+)',         # /c/name 형식
-        r'youtube\.com/user/([a-zA-Z0-9_-]+)',      # /user/name 형식
+    # 채널 ID 패턴 (UC... 형식)
+    channel_id_pattern = r'youtube\.com/channel/([a-zA-Z0-9_-]+)'
+    
+    # 핸들(@), /c/, /user/ 패턴 (한글 등 유니코드 문자 지원)
+    # [^/?&]+ : URL 구분자인 슬래시(/), 물음표(?), 앰퍼샌드(&)가 아닌 모든 문자를 의미
+    unicode_patterns = [
+        r'youtube\.com/@([^/?&]+)',          # /@username 형식 (한글 핸들 지원)
+        r'youtube\.com/c/([^/?&]+)',         # /c/name 형식 (한글 이름 지원)
+        r'youtube\.com/user/([^/?&]+)',      # /user/name 형식 (한글 이름 지원)
     ]
     
-    for pattern in patterns:
+    # 먼저 채널 ID 패턴 검사
+    match = re.search(channel_id_pattern, url)
+    if match:
+        return match.group(1), channel_id_pattern
+    
+    # 다음으로 유니코드 지원 패턴 검사
+    for pattern in unicode_patterns:
         match = re.search(pattern, url)
         if match:
             return match.group(1), pattern
@@ -334,7 +343,7 @@ if api_key_loaded and api_key:
                 st.error("❌ 올바른 유튜브 채널 URL을 입력해주세요.")
             else:
                 # 채널 정보 가져오기
-                if 'channel/' in pattern:
+                if pattern and 'channel/' in pattern:
                     channel_info = get_channel_info_by_id(channel_identifier, api_key)
                 else:
                     channel_info = get_channel_info_by_username(channel_identifier, api_key)
