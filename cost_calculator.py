@@ -120,3 +120,4 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate):
         'cpm_used': int(global_cost['cpm_used'] * korea_adjustment),
         'korea_adjustment': korea_adjustment
     }
+

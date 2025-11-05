@@ -1,7 +1,9 @@
 """
-유튜브 인플루언서 검색 엔진 v3.0
+유튜브 인플루언서 검색 엔진 v3.1 (시각화 강화)
 사용자가 유튜브 링크를 입력하면 채널 정보를 분석하고 광고 비용을 산출합니다.
-광고비 산출 로직을 cost_calculator.py 모듈로 분리
+- 사이드바 제거 (단일 화면)
+- '한국 시장 기준' 로직만 사용
+- 최근 영상 분석 및 비용 산출 로직 시각화 (차트 추가)
 """
 
 import streamlit as st
@@ -9,7 +11,8 @@ import requests
 import re
 from datetime import datetime
 import os  # 환경변수 사용을 위해 추가
-import cost_calculator # *** 수정: 광고비 계산 모듈 import ***
+import cost_calculator # 광고비 계산 모듈 import
+import pandas as pd # 시각화를 위한 pandas import
 
 # 페이지 설정
 st.set_page_config(
@@ -18,12 +21,59 @@ st.set_page_config(
     layout="wide"
 )
 
-# 제목
-st.title("🎬 유튜브 인플루언서 검색 엔진")
-st.write("유튜브 채널 링크를 입력하면 광고 비용을 산출해드립니다!")
+# --- (시각적 요소를 위한 스타일) ---
+st.markdown("""
+<style>
+.cost-range-bar {
+    width: 100%;
+    background-color: #f0f2f6;
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    border: 1px solid #ddd;
+}
+.cost-range-line {
+    width: 100%;
+    height: 10px;
+    background: linear-gradient(90deg, #b0c4de 0%, #4682b4 50%, #b0c4de 100%);
+    border-radius: 5px;
+    margin: 10px 0;
+    position: relative;
+}
+.cost-label {
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #333;
+}
+.cost-minmax {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9em;
+    color: #555;
+    padding: 0 5px;
+}
+.cost-avg {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: -25px;
+    font-weight: bold;
+    font-size: 1.2em;
+    color: #000;
+    background-color: white;
+    padding: 2px 8px;
+    border-radius: 5px;
+    border: 1px solid #4682b4;
+}
+</style>
+""", unsafe_allow_html=True)
 
-# API 키 가져오기 
-# Streamlit Cloud와 Hugging Face Spaces 모두 지원
+
+# --- (제목) ---
+st.title("🎬 유튜브 인플루언서 검색 엔진 (v3.1)")
+st.write("유튜브 채널 링크를 입력하면 광고 비용을 산출해드립니다! (한국 시장 기준)")
+
+# --- (API 키 로드) ---
 try:
     # 방법 1: Streamlit secrets에서 가져오기 (Streamlit Cloud)
     api_key = st.secrets["YOUTUBE_API_KEY"]
@@ -41,19 +91,11 @@ except:
         api_key = None
         api_key_loaded = False
 
-# API 키 로딩 실패 시 오류 메시지 표시
 if not api_key_loaded:
     st.error("⚠️ API 키가 설정되지 않았습니다. 관리자에게 문의하세요.")
     st.info("💡 관리자: API_KEY_SETUP_GUIDE.md 파일을 참고하여 API 키를 설정하세요.")
 
-# 설정 옵션 (사이드바에 배치)
-st.sidebar.header("⚙️ 설정")
-st.sidebar.subheader("💰 비용 산정 방식")
-pricing_method = st.sidebar.radio(
-    "선택하세요",
-    ["글로벌 표준 (CPM 기반)", "한국 시장 기준"],
-    help="글로벌 표준은 해외 서비스들의 평균 단가를, 한국 시장은 국내 특성을 반영합니다"
-)
+# --- (함수 정의: API 호출 및 데이터 처리) ---
 
 def extract_channel_id(url):
     """
@@ -186,18 +228,15 @@ def calculate_average_views(videos):
     total_views = sum(int(video['statistics'].get('viewCount', 0)) for video in videos)
     return total_views // len(videos)
 
-# *** 삭제: get_influencer_tier 함수 (cost_calculator로 이동) ***
-# *** 삭제: estimate_ad_cost_global 함수 (cost_calculator로 이동) ***
-# *** 삭제: estimate_ad_cost_korea 함수 (cost_calculator로 이동) ***
-
 def format_number(num):
     """
     숫자를 읽기 쉬운 형식으로 변환 (예: 1234567 -> 1,234,567)
     """
     return f"{num:,}"
 
-# 메인 로직
+# --- (메인 로직) ---
 if api_key_loaded and api_key:
+    
     # 유튜브 URL 입력
     youtube_url = st.text_input(
         "🔗 유튜브 채널 URL을 입력하세요",
@@ -221,7 +260,9 @@ if api_key_loaded and api_key:
                 if not channel_info:
                     st.error("❌ 채널 정보를 가져올 수 없습니다. URL을 확인해주세요.")
                 else:
-                    # 채널 통계 추출
+                    # --- (채널 기본 정보 표시) ---
+                    st.success("✅ 채널 정보를 성공적으로 가져왔습니다!")
+                    
                     stats = channel_info['statistics']
                     snippet = channel_info['snippet']
                     
@@ -229,20 +270,15 @@ if api_key_loaded and api_key:
                     video_count = int(stats.get('videoCount', 0))
                     total_view_count = int(stats.get('viewCount', 0))
                     
-                    # 인플루언서 등급
-                    # *** 수정: cost_calculator 모듈 사용 ***
+                    # cost_calculator 모듈 사용
                     tier_name, tier_range = cost_calculator.get_influencer_tier(subscriber_count)
-                    
-                    # 채널 기본 정보 표시
-                    st.success("✅ 채널 정보를 성공적으로 가져왔습니다!")
                     
                     col1, col2 = st.columns([1, 2])
                     
                     with col1:
                         # 채널 썸네일
                         if 'thumbnails' in snippet:
-                            thumbnail_url = snippet['thumbnails']['high']['url']
-                            st.image(thumbnail_url, width=200)
+                            st.image(snippet['thumbnails']['high']['url'], width=200)
                     
                     with col2:
                         st.subheader(snippet['title'])
@@ -250,31 +286,16 @@ if api_key_loaded and api_key:
                         st.write(f"**설명:** {snippet.get('description', 'N/A')[:200]}...")
                         st.write(f"**채널 생성일:** {snippet['publishedAt'][:10]}")
                     
-                    # 채널 통계
+                    # --- (채널 통계) ---
                     st.markdown("---")
                     st.subheader("📊 채널 통계")
                     
                     col1, col2, col3 = st.columns(3)
+                    col1.metric("구독자 수", format_number(subscriber_count))
+                    col2.metric("총 동영상 수", format_number(video_count))
+                    col3.metric("총 조회수", format_number(total_view_count))
                     
-                    with col1:
-                        st.metric(
-                            label="구독자 수",
-                            value=format_number(subscriber_count)
-                        )
-                    
-                    with col2:
-                        st.metric(
-                            label="총 동영상 수",
-                            value=format_number(video_count)
-                        )
-                    
-                    with col3:
-                        st.metric(
-                            label="총 조회수",
-                            value=format_number(total_view_count)
-                        )
-                    
-                    # 최근 영상 분석
+                    # --- (최근 영상 분석) ---
                     st.markdown("---")
                     st.subheader("🎥 최근 영상 분석 (최근 10개)")
                     
@@ -286,10 +307,8 @@ if api_key_loaded and api_key:
                         )
                         
                         if recent_videos:
-                            # 평균 조회수 계산
+                            # 평균 조회수/참여율 계산
                             avg_views = calculate_average_views(recent_videos)
-                            
-                            # 평균 참여율 계산
                             engagement_rates = [
                                 calculate_engagement_rate(video['statistics']) 
                                 for video in recent_videos
@@ -298,111 +317,99 @@ if api_key_loaded and api_key:
                             
                             # 지표 표시
                             col1, col2 = st.columns(2)
+                            col1.metric("평균 조회수", format_number(avg_views))
+                            col2.metric("평균 참여율", f"{avg_engagement_rate:.2f}%", help="참여율 = (좋아요 + 댓글) / 조회수 * 100")
                             
-                            with col1:
-                                st.metric(
-                                    label="평균 조회수",
-                                    value=format_number(avg_views)
-                                )
-                            
-                            with col2:
-                                st.metric(
-                                    label="평균 참여율",
-                                    value=f"{avg_engagement_rate:.2f}%",
-                                    help="참여율 = (좋아요 + 댓글) / 조회수 * 100"
-                                )
-                            
-                            # 최근 영상 목록
-                            with st.expander("최근 영상 상세 보기"):
-                                for i, video in enumerate(recent_videos, 1):
-                                    video_stats = video['statistics']
-                                    video_snippet = video['snippet']
-                                    
-                                    views = int(video_stats.get('viewCount', 0))
-                                    likes = int(video_stats.get('likeCount', 0))
-                                    comments = int(video_stats.get('commentCount', 0))
-                                    engagement = calculate_engagement_rate(video_stats)
-                                    
-                                    st.write(f"**{i}. {video_snippet['title']}**")
-                                    st.write(f"   - 조회수: {format_number(views)} | 좋아요: {format_number(likes)} | 댓글: {format_number(comments)} | 참여율: {engagement}%")
-                                    st.write("")
-                            
-                            # 광고 비용 산출
-                            st.markdown("---")
-                            st.subheader("💰 1회 광고 의뢰 적정 비용")
-                            
-                            # 선택한 방식에 따라 비용 계산
-                            if pricing_method == "글로벌 표준 (CPM 기반)":
-                                # *** 수정: cost_calculator 모듈 사용 ***
-                                cost_data = cost_calculator.estimate_ad_cost_global(
-                                    subscriber_count, 
-                                    avg_views, 
-                                    avg_engagement_rate
-                                )
+                            # --- (시각화 1: 최근 영상 데이터 차트) ---
+                            video_data = []
+                            for i, video in enumerate(recent_videos, 1):
+                                video_stats = video['statistics']
+                                video_snippet = video['snippet']
                                 
-                                st.info("📌 **글로벌 표준 방식 (CPM 기반)**")
-                                st.write("해외 주요 인플루언서 마케팅 플랫폼들의 평균 단가를 기준으로 산정합니다.")
-                                st.write("출처: PageOne Formula, Shopify, Descript (2024-2025)")
+                                title = f"{i}. {video_snippet['title'][:25]}..." # 제목 25자로 자르기
+                                views = int(video_stats.get('viewCount', 0))
+                                engagement = calculate_engagement_rate(video_stats)
                                 
-                                # 비용 계산 과정 설명
+                                video_data.append({'영상 (최신순)': title, '조회수': views, '참여율 (%)': engagement})
+                            
+                            # 데이터가 있을 경우에만 차트 생성
+                            if video_data:
+                                df_videos = pd.DataFrame(video_data)
+                                
                                 st.write("")
-                                st.write("**📊 비용 산출 방식:**")
-                                st.write(f"1️⃣ **CPM 기반 비용**: {format_number(cost_data['base_cost_cpm'])}원")
-                                st.write(f"   └ 평균 조회수 {format_number(avg_views)} × CPM {format_number(cost_data['cpm_used'])}원/1,000뷰")
-                                st.write(f"2️⃣ **티어 최소 금액**: {format_number(cost_data['tier_base'])}원 ({tier_name} 기준)")
-                                st.write(f"3️⃣ **기본 비용**: {format_number(cost_data['base_cost'])}원 (위 두 값 중 높은 값)")
-                                st.write(f"4️⃣ **참여율 보정**: ×{cost_data['engagement_multiplier']} ({cost_data['engagement_level']})")
+                                st.write("##### 최근 10개 영상 조회수")
+                                st.bar_chart(df_videos.set_index('영상 (최신순)')['조회수'])
                                 
-                            else:  # 한국 시장 기준
-                                # *** 수정: cost_calculator 모듈 사용 ***
-                                cost_data = cost_calculator.estimate_ad_cost_korea(
-                                    subscriber_count, 
-                                    avg_views, 
-                                    avg_engagement_rate
-                                )
-                                
-                                st.info("📌 **한국 시장 기준 방식**")
-                                st.write("글로벌 표준을 기반으로 한국 시장 특성을 반영합니다.")
-                                st.write("한국은 인플루언서 공급이 풍부하고 시장 규모가 작아 글로벌 대비 75-85% 수준")
-                                
-                                # 비용 계산 과정 설명
-                                st.write("")
-                                st.write("**📊 비용 산출 방식:**")
-                                st.write(f"1️⃣ **CPM 기반 비용**: {format_number(cost_data['base_cost_cpm'])}원")
-                                st.write(f"   └ 한국 시장 CPM {format_number(cost_data['cpm_used'])}원/1,000뷰")
-                                st.write(f"2️⃣ **티어 최소 금액**: {format_number(cost_data['tier_base'])}원 ({tier_name} 기준)")
-                                st.write(f"3️⃣ **기본 비용**: {format_number(cost_data['base_cost'])}원")
-                                st.write(f"4️⃣ **참여율 보정**: ×{cost_data['engagement_multiplier']} ({cost_data['engagement_level']})")
-                                st.write(f"5️⃣ **한국 시장 조정**: ×{cost_data['korea_adjustment']}")
+                                st.write("##### 최근 10개 영상 참여율 (%)")
+                                st.line_chart(df_videos.set_index('영상 (최신순)')['참여율 (%)'])
+
+                                with st.expander("최근 영상 상세 데이터 보기"):
+                                    st.dataframe(df_videos)
                             
-                            # 최종 비용
+                            # --- (광고 비용 산출 - 한국 기준) ---
                             st.markdown("---")
+                            st.subheader("💰 1회 광고 의뢰 적정 비용 (한국 시장 기준)")
+                            
+                            # cost_calculator 모듈 사용
+                            cost_data = cost_calculator.estimate_ad_cost_korea(
+                                subscriber_count, 
+                                avg_views, 
+                                avg_engagement_rate
+                            )
+                            
                             final_cost = cost_data['final_cost']
                             min_cost = int(final_cost * 0.85)
                             max_cost = int(final_cost * 1.15)
                             
-                            st.success(f"### 💵 추천 광고 비용: {format_number(min_cost)}원 ~ {format_number(max_cost)}원")
-                            st.info(f"**평균 예상 비용: {format_number(final_cost)}원**")
+                            # --- (시각화 2: 최종 비용 추천 범위) ---
+                            st.markdown(f"""
+                            <div class="cost-range-bar">
+                                <div class="cost-label">추천 광고 비용 범위</div>
+                                <div class="cost-range-line">
+                                    <div class="cost-avg">평균 {format_number(final_cost)}원</div>
+                                </div>
+                                <div class="cost-minmax">
+                                    <span>최소 {format_number(min_cost)}원</span>
+                                    <span>최대 {format_number(max_cost)}원</span>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
                             
-                            # 비교 정보 (글로벌 vs 한국)
-                            if pricing_method == "한국 시장 기준":
-                                # *** 수정: cost_calculator 모듈 사용 ***
-                                global_cost_data = cost_calculator.estimate_ad_cost_global(subscriber_count, avg_views, avg_engagement_rate)
-                                st.write("")
-                                st.write(f"💡 **참고**: 글로벌 표준 기준으로는 약 {format_number(global_cost_data['final_cost'])}원")
+                            st.write("")
+                            st.info(f"""
+                            **[비용 산출 상세]**\n
+                            - **CPM 기반 비용**: {format_number(cost_data['base_cost_cpm'])}원 (한국 시장 CPM {format_number(cost_data['cpm_used'])}원/1,000뷰)\n
+                            - **티어 최소 금액**: {format_number(cost_data['tier_base'])}원 ({tier_name} 기준)\n
+                            - **기본 비용 (Max)**: {format_number(cost_data['base_cost'])}원\n
+                            - **참여율 보정**: ×{cost_data['engagement_multiplier']} ({cost_data['engagement_level']})\n
+                            - **한국 시장 조정**: ×{cost_data['korea_adjustment']}
+                            """)
+
+                            # --- (시각화 3: 비용 구성 요소 차트) ---
+                            st.write("##### 비용 구성 분석 (참고)")
+                            base_val = cost_data['base_cost']
+                            # 보정/조정액이 음수가 되지 않도록 min(0, ...) 처리
+                            multiplier_val = max(0, final_cost - base_val) 
                             
-                            # 추가 정보
+                            cost_comp_data = {
+                                '구성 요소': ['기본 비용 (CPM/티어)', '보정/조정액 (참여율, 시장)'],
+                                '금액 (원)': [base_val, multiplier_val]
+                            }
+                            
+                            # 데이터가 있을 경우에만 차트 생성
+                            if base_val > 0 or multiplier_val > 0:
+                                df_cost_comp = pd.DataFrame(cost_comp_data)
+                                st.bar_chart(df_cost_comp.set_index('구성 요소'), use_container_width=True)
+
+                            # --- (참고사항) ---
                             st.markdown("---")
-                            st.write("**📝 참고사항:**")
-                            st.write("- 위 비용은 **1회 전용 광고 영상**(Dedicated Video) 기준입니다.")
-                            st.write("- 단순 언급(Mention)이나 짧은 소개는 30-50% 정도 저렴합니다.")
-                            st.write("- 콘텐츠 재사용권(Usage Rights)이 포함되면 20-50% 추가 비용이 발생합니다.")
-                            st.write("- 독점 계약(Exclusivity) 시 30-100% 추가 비용이 발생할 수 있습니다.")
-                            st.write("- 최종 금액은 인플루언서와 직접 협의하여 결정하시기 바랍니다.")
-                            
-                            # 데이터 출처
-                            st.markdown("---")
-                            st.caption("**데이터 출처**: PageOne Formula, Shopify, Descript, ADOPTER Media (2024-2025)")
+                            with st.expander("📝 참고사항"):
+                                st.write("- 위 비용은 **1회 전용 광고 영상**(Dedicated Video) 기준입니다.")
+                                st.write("- 단순 언급(Mention)이나 짧은 소개는 30-50% 정도 저렴합니다.")
+                                st.write("- 콘텐츠 재사용권(Usage Rights)이 포함되면 20-50% 추가 비용이 발생합니다.")
+                                st.write("- 독점 계약(Exclusivity) 시 30-100% 추가 비용이 발생할 수 있습니다.")
+                                st.write("- 최종 금액은 인플루언서와 직접 협의하여 결정하시기 바랍니다.")
+                                st.caption("**데이터 출처**: PageOne Formula, Shopify, Descript, ADOPTER Media (2024-2025)")
                         
                         else:
                             st.warning("⚠️ 최근 영상 정보를 가져올 수 없습니다.")
@@ -410,100 +417,18 @@ if api_key_loaded and api_key:
 else:
     st.info("⚠️ 서비스 설정이 완료되지 않았습니다. 관리자에게 문의하세요.")
     
-    # 관리자용 API 키 설정 안내
-    with st.expander("🔧 관리자용: API 키 설정 방법"):
-        st.write("""
-        ### 로컬 개발 환경
+    # 관리자용 안내
+    with st.expander("🔧 관리자용: API 키 설정 및 로직 안내"):
+        st.write("#### API 키 설정 방법")
+        st.write("Streamlit Cloud 또는 Hugging Face Spaces의 'Secrets'에 `YOUTUBE_API_KEY`로 본인의 API 키를 입력하세요.")
         
-        1. 프로젝트 폴더에 `.streamlit` 폴더 생성
-        2. `.streamlit/secrets.toml` 파일 생성
-        3. 아래 내용 입력:
-        
-        ```toml
-        YOUTUBE_API_KEY = "여기에_API_키_입력"
-        ```
-        
-        ### Streamlit Cloud 배포 시
-        
-        1. Streamlit Cloud 대시보드에서 앱 선택
-        2. Settings → Secrets 클릭
-        3. 아래 내용 입력:
-        
-        ```toml
-        YOUTUBE_API_KEY = "여기에_API_키_입력"
-        ```
-        
-        ### Hugging Face Spaces 배포 시
-        
-        1. Space Settings로 이동
-        2. Repository secrets 섹션 찾기
-        3. New secret 클릭
-        4. Name: `YOUTUBE_API_KEY`
-        5. Value: 본인의 API 키 입력
-        """)
-    
-    # API 키 발급 안내
-    with st.expander("📚 YouTube API 키 발급 방법"):
-        st.write("""
-        1. **Google Cloud Console 접속**
-           - https://console.cloud.google.com 방문
-        
-        2. **새 프로젝트 만들기**
-           - 상단의 프로젝트 선택 → '새 프로젝트' 클릭
-           - 프로젝트 이름 입력 후 만들기
-        
-        3. **YouTube Data API v3 활성화**
-           - 왼쪽 메뉴에서 'API 및 서비스' → '라이브러리' 선택
-           - 'YouTube Data API v3' 검색
-           - 'YouTube Data API v3' 클릭 후 '사용' 버튼 클릭
-        
-        4. **API 키 만들기**
-           - 왼쪽 메뉴에서 'API 및 서비스' → '사용자 인증 정보' 선택
-           - 상단의 '+ 사용자 인증 정보 만들기' → 'API 키' 선택
-           - 생성된 API 키를 복사
-        
-        5. **API 키 입력**
-           - 복사한 API 키를 왼쪽 사이드바의 입력창에 붙여넣기
-        """)
-    
-    # 단가 산정 로직 설명 (수정된 벤치마크 값 반영)
-    with st.expander("💡 단가 산정 로직 비교 (v3.0 기준)"):
-        st.write("""
-        ### 글로벌 표준 (CPM 기반)
-        
-        **기준**: 해외 주요 인플루언서 마케팅 플랫폼의 2024-2025 평균 단가
-        
-        - **CPM**: 1,000뷰당 26,000-52,000원 (평균 39,000원 적용)
-        - **티어별 최소 금액**:
-          - 나노 (1K-10K): 약 35만원
-          - 마이크로 (10K-100K): 약 250만원
-          - 미드티어 (100K-500K): 약 520만원
-          - 매크로 (500K-1M): 약 1,950만원
-          - 메가 (1M+): 약 4,750만원 이상
-        
-        **장점**: 최신 글로벌 벤치마크에 맞춰 현실성 상향
-        
-        ---
-        
-        ### 한국 시장 기준
-        
-        **기준**: 수정된 글로벌 표준을 한국 시장 특성에 맞게 조정
-        
-        - **조정 계수**: 글로벌 대비 75-85% (구독자 규모에 따라 다름)
-        - **이유**: 
-          - 한국은 인플루언서 공급이 풍부
-          - 시장 규모가 작아 가격 경쟁이 심함
-          - 마이크로 인플루언서는 더 활발 (85% 적용)
-        
-        **장점**: 한국 시장 현실을 반영한 현실적인 가격
-        
-        ---
-        
-        **추천**: 
-        - 국내 브랜드 → **한국 시장 기준** 선택
-        - 해외 브랜드 → **글로벌 표준** 선택
-        """)
+        st.write("#### 단가 산정 로직 (v3.1 한국 기준)")
+        st.write("수정된 글로벌 벤치마크(2025)를 기반으로 한국 시장 특성(75-85%)을 반영하여 계산합니다.")
+        st.write("- **CPM**: 1,000뷰당 약 39,000원 (글로벌 기준)")
+        st.write("- **티어별 최소 금액**: 나노(35만) ~ 메가(4,750만)")
+        st.write("- **조정**: 참여율(0.85~1.5배), 한국 시장(0.75~0.85배) 적용")
 
 # 푸터
 st.markdown("---")
-st.caption("Made with ❤️ | 유튜브 인플루언서 검색 엔진 v3.0 (2025 벤치마크 적용)")
+st.caption("Made with ❤️ | 유튜브 인플루언서 검색 엔진 v3.1 (2025 벤치마크 & 시각화 강화)")
+
