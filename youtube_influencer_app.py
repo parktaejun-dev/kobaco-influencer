@@ -1,7 +1,7 @@
 """
-유튜브 인플루언서 검색 엔진 v2.0
+유튜브 인플루언서 검색 엔진 v3.0
 사용자가 유튜브 링크를 입력하면 채널 정보를 분석하고 광고 비용을 산출합니다.
-글로벌 표준 CPM 기반 단가 산정 로직 적용 (2024-2025 기준)
+광고비 산출 로직을 cost_calculator.py 모듈로 분리
 """
 
 import streamlit as st
@@ -9,6 +9,7 @@ import requests
 import re
 from datetime import datetime
 import os  # 환경변수 사용을 위해 추가
+import cost_calculator # *** 수정: 광고비 계산 모듈 import ***
 
 # 페이지 설정
 st.set_page_config(
@@ -185,140 +186,9 @@ def calculate_average_views(videos):
     total_views = sum(int(video['statistics'].get('viewCount', 0)) for video in videos)
     return total_views // len(videos)
 
-def get_influencer_tier(subscriber_count):
-    """
-    구독자 수에 따른 인플루언서 등급 분류
-    글로벌 표준 기준
-    """
-    if subscriber_count < 10000:
-        return "나노 (Nano)", "1K-10K"
-    elif subscriber_count < 100000:
-        return "마이크로 (Micro)", "10K-100K"
-    elif subscriber_count < 500000:
-        return "미드티어 (Mid-tier)", "100K-500K"
-    elif subscriber_count < 1000000:
-        return "매크로 (Macro)", "500K-1M"
-    else:
-        return "메가 (Mega)", "1M+"
-
-def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate):
-    """
-    글로벌 표준 광고 비용 산출 로직 (CPM 기반)
-    
-    기준: 2024-2025 해외 인플루언서 마케팅 시장 데이터
-    출처: Influencer Marketing Hub, Business of Apps, HypeAuditor 등
-    
-    1. CPM (Cost Per Mille = 1,000뷰당 비용)
-       - YouTube 인플루언서 평균 CPM: $50-$100 (65,000-130,000원)
-       - 일반 광고 CPM의 약 2배 (신뢰도 프리미엄)
-    
-    2. 구독자 규모별 기본 단가
-       - 나노 (1K-10K): $200-$500
-       - 마이크로 (10K-100K): $800-$1,500
-       - 미드티어 (100K-500K): $3,000-$5,000
-       - 매크로 (500K-1M): $5,000-$10,000
-       - 메가 (1M+): $8,000-$20,000+
-    
-    3. 참여율 보정
-       - 참여율이 높을수록 실제 전환율이 높아 가치 상승
-    """
-    
-    # 1. CPM 기반 기본 비용 계산
-    # 평균 CPM: $75 (약 97,500원) - 중간값 사용
-    cpm_krw = 97500  # 1,000뷰당 비용 (원화)
-    base_cost_cpm = (avg_views / 1000) * cpm_krw
-    
-    # 2. 구독자 규모별 최소 보장 금액 (티어별 기준가)
-    if subscriber_count < 10000:
-        tier_base = 350000  # $200-500의 중간값 약 $350 = 455,000원
-    elif subscriber_count < 100000:
-        tier_base = 1500000  # $800-1,500의 중간값 약 $1,150 = 1,495,000원
-    elif subscriber_count < 500000:
-        tier_base = 5200000  # $3,000-5,000의 중간값 약 $4,000 = 5,200,000원
-    elif subscriber_count < 1000000:
-        tier_base = 9750000  # $5,000-10,000의 중간값 약 $7,500 = 9,750,000원
-    else:
-        tier_base = 18200000  # $8,000-20,000의 중간값 약 $14,000 = 18,200,000원
-    
-    # 3. CPM 기반 금액과 티어 기본 금액 중 높은 값 선택
-    base_cost = max(base_cost_cpm, tier_base)
-    
-    # 4. 참여율 보정 (인플루언서의 실제 영향력 반영)
-    # 참여율 1% 이하: 매우 낮음 (0.85배)
-    # 참여율 1-2%: 낮음 (0.9배)
-    # 참여율 2-3%: 보통 (1.0배)
-    # 참여율 3-5%: 양호 (1.1배)
-    # 참여율 5-7%: 높음 (1.2배)
-    # 참여율 7% 이상: 매우 높음 (1.3배)
-    if engagement_rate < 1:
-        engagement_multiplier = 0.85
-        engagement_level = "매우 낮음"
-    elif engagement_rate < 2:
-        engagement_multiplier = 0.9
-        engagement_level = "낮음"
-    elif engagement_rate < 3:
-        engagement_multiplier = 1.0
-        engagement_level = "보통"
-    elif engagement_rate < 5:
-        engagement_multiplier = 1.1
-        engagement_level = "양호"
-    elif engagement_rate < 7:
-        engagement_multiplier = 1.2
-        engagement_level = "높음"
-    else:
-        engagement_multiplier = 1.3
-        engagement_level = "매우 높음"
-    
-    # 5. 최종 비용 계산
-    final_cost = int(base_cost * engagement_multiplier)
-    
-    return {
-        'base_cost_cpm': int(base_cost_cpm),
-        'tier_base': tier_base,
-        'base_cost': int(base_cost),
-        'engagement_multiplier': engagement_multiplier,
-        'engagement_level': engagement_level,
-        'final_cost': final_cost,
-        'cpm_used': cpm_krw
-    }
-
-def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate):
-    """
-    한국 시장 기준 광고 비용 산출 로직
-    
-    한국 시장 특성:
-    - 소셜미디어 침투율 93.4% (세계 3위)
-    - 2025년 인플루언서 마케팅 지출: $489M
-    - K-뷰티, K-푸드, K-팝 등 한류의 영향
-    - 글로벌 대비 약간 낮은 단가 (약 70-80% 수준)
-    
-    기본 로직: 글로벌 표준에서 한국 시장 특성 반영
-    """
-    
-    # 글로벌 기준 먼저 계산
-    global_cost = estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate)
-    
-    # 한국 시장 조정 계수 (0.75 = 글로벌의 75% 수준)
-    # 이유: 한국은 시장 규모가 작고, 인플루언서 공급이 많아 가격 경쟁이 심함
-    korea_adjustment = 0.75
-    
-    # 나노/마이크로 인플루언서는 한국에서 더 활발하므로 85% 적용
-    if subscriber_count < 100000:
-        korea_adjustment = 0.85
-    
-    # 최종 비용 계산
-    final_cost = int(global_cost['final_cost'] * korea_adjustment)
-    
-    return {
-        'base_cost_cpm': int(global_cost['base_cost_cpm'] * korea_adjustment),
-        'tier_base': int(global_cost['tier_base'] * korea_adjustment),
-        'base_cost': int(global_cost['base_cost'] * korea_adjustment),
-        'engagement_multiplier': global_cost['engagement_multiplier'],
-        'engagement_level': global_cost['engagement_level'],
-        'final_cost': final_cost,
-        'cpm_used': int(global_cost['cpm_used'] * korea_adjustment),
-        'korea_adjustment': korea_adjustment
-    }
+# *** 삭제: get_influencer_tier 함수 (cost_calculator로 이동) ***
+# *** 삭제: estimate_ad_cost_global 함수 (cost_calculator로 이동) ***
+# *** 삭제: estimate_ad_cost_korea 함수 (cost_calculator로 이동) ***
 
 def format_number(num):
     """
@@ -360,7 +230,8 @@ if api_key_loaded and api_key:
                     total_view_count = int(stats.get('viewCount', 0))
                     
                     # 인플루언서 등급
-                    tier_name, tier_range = get_influencer_tier(subscriber_count)
+                    # *** 수정: cost_calculator 모듈 사용 ***
+                    tier_name, tier_range = cost_calculator.get_influencer_tier(subscriber_count)
                     
                     # 채널 기본 정보 표시
                     st.success("✅ 채널 정보를 성공적으로 가져왔습니다!")
@@ -462,7 +333,8 @@ if api_key_loaded and api_key:
                             
                             # 선택한 방식에 따라 비용 계산
                             if pricing_method == "글로벌 표준 (CPM 기반)":
-                                cost_data = estimate_ad_cost_global(
+                                # *** 수정: cost_calculator 모듈 사용 ***
+                                cost_data = cost_calculator.estimate_ad_cost_global(
                                     subscriber_count, 
                                     avg_views, 
                                     avg_engagement_rate
@@ -470,7 +342,7 @@ if api_key_loaded and api_key:
                                 
                                 st.info("📌 **글로벌 표준 방식 (CPM 기반)**")
                                 st.write("해외 주요 인플루언서 마케팅 플랫폼들의 평균 단가를 기준으로 산정합니다.")
-                                st.write("출처: Influencer Marketing Hub, Business of Apps, HypeAuditor (2024-2025)")
+                                st.write("출처: PageOne Formula, Shopify, Descript (2024-2025)")
                                 
                                 # 비용 계산 과정 설명
                                 st.write("")
@@ -482,7 +354,8 @@ if api_key_loaded and api_key:
                                 st.write(f"4️⃣ **참여율 보정**: ×{cost_data['engagement_multiplier']} ({cost_data['engagement_level']})")
                                 
                             else:  # 한국 시장 기준
-                                cost_data = estimate_ad_cost_korea(
+                                # *** 수정: cost_calculator 모듈 사용 ***
+                                cost_data = cost_calculator.estimate_ad_cost_korea(
                                     subscriber_count, 
                                     avg_views, 
                                     avg_engagement_rate
@@ -513,7 +386,8 @@ if api_key_loaded and api_key:
                             
                             # 비교 정보 (글로벌 vs 한국)
                             if pricing_method == "한국 시장 기준":
-                                global_cost_data = estimate_ad_cost_global(subscriber_count, avg_views, avg_engagement_rate)
+                                # *** 수정: cost_calculator 모듈 사용 ***
+                                global_cost_data = cost_calculator.estimate_ad_cost_global(subscriber_count, avg_views, avg_engagement_rate)
                                 st.write("")
                                 st.write(f"💡 **참고**: 글로벌 표준 기준으로는 약 {format_number(global_cost_data['final_cost'])}원")
                             
@@ -528,7 +402,7 @@ if api_key_loaded and api_key:
                             
                             # 데이터 출처
                             st.markdown("---")
-                            st.caption("**데이터 출처**: Influencer Marketing Hub, Business of Apps, HypeAuditor, Collabstr (2024-2025)")
+                            st.caption("**데이터 출처**: PageOne Formula, Shopify, Descript, ADOPTER Media (2024-2025)")
                         
                         else:
                             st.warning("⚠️ 최근 영상 정보를 가져올 수 없습니다.")
@@ -592,28 +466,28 @@ else:
            - 복사한 API 키를 왼쪽 사이드바의 입력창에 붙여넣기
         """)
     
-    # 단가 산정 로직 설명
-    with st.expander("💡 단가 산정 로직 비교"):
+    # 단가 산정 로직 설명 (수정된 벤치마크 값 반영)
+    with st.expander("💡 단가 산정 로직 비교 (v3.0 기준)"):
         st.write("""
         ### 글로벌 표준 (CPM 기반)
         
         **기준**: 해외 주요 인플루언서 마케팅 플랫폼의 2024-2025 평균 단가
         
-        - **CPM**: 1,000뷰당 65,000-130,000원 (평균 97,500원)
+        - **CPM**: 1,000뷰당 26,000-52,000원 (평균 39,000원 적용)
         - **티어별 최소 금액**:
           - 나노 (1K-10K): 약 35만원
-          - 마이크로 (10K-100K): 약 150만원
+          - 마이크로 (10K-100K): 약 250만원
           - 미드티어 (100K-500K): 약 520만원
-          - 매크로 (500K-1M): 약 975만원
-          - 메가 (1M+): 약 1,820만원 이상
+          - 매크로 (500K-1M): 약 1,950만원
+          - 메가 (1M+): 약 4,750만원 이상
         
-        **장점**: 국제 표준에 맞춰 해외 브랜드나 글로벌 캠페인에 적합
+        **장점**: 최신 글로벌 벤치마크에 맞춰 현실성 상향
         
         ---
         
         ### 한국 시장 기준
         
-        **기준**: 글로벌 표준을 한국 시장 특성에 맞게 조정
+        **기준**: 수정된 글로벌 표준을 한국 시장 특성에 맞게 조정
         
         - **조정 계수**: 글로벌 대비 75-85% (구독자 규모에 따라 다름)
         - **이유**: 
@@ -632,4 +506,4 @@ else:
 
 # 푸터
 st.markdown("---")
-st.caption("Made with ❤️ | 유튜브 인플루언서 검색 엔진 v2.0 (글로벌 표준 CPM 로직 적용)")
+st.caption("Made with ❤️ | 유튜브 인플루언서 검색 엔진 v3.0 (2025 벤치마크 적용)")
