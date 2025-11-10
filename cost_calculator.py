@@ -1,10 +1,11 @@
 """
-유튜브 인플루언서 광고 비용 산출 모듈 (v3.0)
+유튜브 인플루언서 광고 비용 산출 모듈 (v4.0)
 2024-2025년 글로벌 벤치마크(PageOne Formula, Shopify, Descript 등) 기준 적용
 
-- CPM 기준액 하향 조정 (97,500원 -> 39,000원)
-- 티어별 최소 보장 금액 수정 (마이크로, 매크로, 메가 티어 상향)
-- 참여율 보정 세분화 (10%+ 구간 추가)
+v4.0 개선사항:
+- 최근 90일 CPM 계산 추가 (죽은 채널 방지)
+- 참여 질 보정 추가 (댓글/좋아요 비율)
+- 콘텐츠 포맷 프리미엄 추가
 """
 
 def get_influencer_tier(subscriber_count):
@@ -23,101 +24,214 @@ def get_influencer_tier(subscriber_count):
     else:
         return "메가 (Mega)", "1M+"
 
-def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate):
+def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
+                            avg_likes, avg_comments,
+                            recent_90day_avg_views=None,
+                            content_format="기본"):
     """
-    글로벌 표준 광고 비용 산출 로직 (CPM 기반) - v3.0 (2025 벤치마크 수정)
-    
-    [근거]
-    - CPM: PageOne Formula ($10-30), Descript ($30-70)
-    - Tiers: Shopify, ADOPTER Media
+    글로벌 표준 광고 비용 산출 로직 (CPM 기반) - v4.0
+
+    Parameters:
+    -----------
+    subscriber_count : int
+        구독자 수
+    avg_views : int
+        평균 조회수
+    engagement_rate : float
+        참여율 (%)
+    avg_likes : int
+        평균 좋아요 수
+    avg_comments : int
+        평균 댓글 수
+    recent_90day_avg_views : int, optional
+        최근 90일 평균 조회수 (죽은 채널 방지용)
+    content_format : str, optional
+        콘텐츠 포맷 ("기본", "단순 노출형", "제품 리뷰", "비교/추천", "사용후기", "장기 캠페인")
+
+    Returns:
+    --------
+    dict : 계산 결과 및 세부 정보
     """
-    
-    # 1. CPM 기반 기본 비용 계산
-    # 2024-2025 벤치마크 평균 $30 (약 39,000원) 기준으로 하향 조정
-    cpm_krw = 39000  # 1,000뷰당 비용 (기존 97,500원에서 대폭 하향)
+
+    # STEP 1: CPM 기반 기본 비용 계산
+    cpm_krw = 39000  # 1,000뷰당 비용
     base_cost_cpm = (avg_views / 1000) * cpm_krw
-    
-    # 2. 구독자 규모별 최소 보장 금액 (티어별 기준가)
-    # 2025 벤치마크(Shopify, Descript, ADOPTER) 기준으로 수정
+
+    # STEP 2: 최근 90일 CPM 계산 (선택적)
+    recent_cpm_cost = 0
+    if recent_90day_avg_views and recent_90day_avg_views > 0:
+        recent_cpm_cost = (recent_90day_avg_views / 1000) * cpm_krw
+
+    # STEP 3: 티어별 최소 보장 금액
     if subscriber_count < 10000:
-        tier_base = 350000  # (나노) $20-200 범위 내, 기존 유지
+        tier_base = 350000      # Nano: 1K-10K
     elif subscriber_count < 100000:
-        tier_base = 2500000  # (마이크로) $200-2,500 -> 중간값 상향 (기존 150만)
+        tier_base = 2500000     # Micro: 10K-100K
     elif subscriber_count < 500000:
-        tier_base = 5200000  # (미드티어) $1,000-10,000 -> 기존 유지 (적절)
+        tier_base = 5200000     # Mid-tier: 100K-500K
     elif subscriber_count < 1000000:
-        tier_base = 19500000 # (매크로) $10,000-20,000 -> 중간값 상향 (기존 975만)
+        tier_base = 19500000    # Macro: 500K-1M
     else:
-        tier_base = 47500000 # (메가) $20,000-100,000+ -> 중간값 대폭 상향 (기존 1820만)
-    
-    # 3. CPM 기반 금액과 티어 기본 금액 중 높은 값 선택
-    base_cost = max(base_cost_cpm, tier_base)
-    
-    # 4. 참여율 보정 (인플루언서의 실제 영향력 반영)
-    # 10%+ 구간 추가하여 세분화
+        tier_base = 47500000    # Mega: 1M+
+
+    # STEP 4: 기본 비용 결정 (세 값 중 최댓값)
+    if recent_cpm_cost > 0:
+        base_cost = max(base_cost_cpm, recent_cpm_cost, tier_base)
+    else:
+        base_cost = max(base_cost_cpm, tier_base)
+
+    # STEP 5: 참여율 보정 계수
     if engagement_rate >= 10:
         engagement_multiplier = 1.5
         engagement_level = "최상 (10%+)"
-    elif engagement_rate >= 7: # 7.0 - 9.99
+    elif engagement_rate >= 7:
         engagement_multiplier = 1.3
         engagement_level = "매우 높음 (7-10%)"
-    elif engagement_rate >= 5: # 5.0 - 6.99
+    elif engagement_rate >= 5:
         engagement_multiplier = 1.2
         engagement_level = "높음 (5-7%)"
-    elif engagement_rate >= 3: # 3.0 - 4.99
+    elif engagement_rate >= 3:
         engagement_multiplier = 1.1
         engagement_level = "양호 (3-5%)"
-    elif engagement_rate >= 2: # 2.0 - 2.99
+    elif engagement_rate >= 2:
         engagement_multiplier = 1.0
         engagement_level = "보통 (2-3%)"
-    elif engagement_rate >= 1: # 1.0 - 1.99
+    elif engagement_rate >= 1:
         engagement_multiplier = 0.9
         engagement_level = "낮음 (1-2%)"
-    else: # < 1.0
+    else:
         engagement_multiplier = 0.85
         engagement_level = "매우 낮음 (<1%)"
-    
-    # 5. 최종 비용 계산
-    final_cost = int(base_cost * engagement_multiplier)
-    
+
+    # STEP 6: 참여 질 보정 계수 (댓글/좋아요 비율)
+    quality_multiplier = 1.0
+    quality_level = "정상 범위"
+    comment_like_ratio = 0.0
+
+    if avg_likes > 0:
+        comment_like_ratio = avg_comments / avg_likes
+
+        if comment_like_ratio >= 0.15:
+            quality_multiplier = 1.1
+            quality_level = "대화형 커뮤니티 (우수)"
+        elif comment_like_ratio < 0.05:
+            quality_multiplier = 0.9
+            quality_level = "이벤트형 (저품질)"
+        else:
+            quality_multiplier = 1.0
+            quality_level = "정상 범위"
+
+    # STEP 7: 최종 참여 계수
+    final_engagement_multiplier = engagement_multiplier * quality_multiplier
+
+    # STEP 8: 콘텐츠 포맷 프리미엄
+    format_multipliers = {
+        "기본": 1.0,
+        "단순 노출형": 1.0,
+        "제품 리뷰": 1.2,
+        "비교/추천": 1.35,
+        "사용후기": 1.35,
+        "장기 캠페인": 1.5
+    }
+    format_multiplier = format_multipliers.get(content_format, 1.0)
+
+    # STEP 9: 글로벌 최종 비용
+    final_cost = int(base_cost * final_engagement_multiplier * format_multiplier)
+
     return {
         'base_cost_cpm': int(base_cost_cpm),
+        'recent_cpm_cost': int(recent_cpm_cost),
         'tier_base': tier_base,
         'base_cost': int(base_cost),
+
+        'engagement_rate': engagement_rate,
         'engagement_multiplier': engagement_multiplier,
         'engagement_level': engagement_level,
+
+        'comment_like_ratio': round(comment_like_ratio, 3),
+        'quality_multiplier': quality_multiplier,
+        'quality_level': quality_level,
+
+        'final_engagement_multiplier': round(final_engagement_multiplier, 3),
+        'format_multiplier': format_multiplier,
+        'content_format': content_format,
+
         'final_cost': final_cost,
         'cpm_used': cpm_krw
     }
 
-def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate):
+def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
+                          avg_likes, avg_comments,
+                          recent_90day_avg_views=None,
+                          content_format="기본"):
     """
-    한국 시장 기준 광고 비용 산출 로직
-    - 글로벌 벤치마크(수정됨)를 기반으로 한국 시장 조정 계수(기존 유지) 적용
+    한국 시장 기준 광고 비용 산출 로직 - v4.0
+
+    Parameters:
+    -----------
+    subscriber_count : int
+        구독자 수
+    avg_views : int
+        평균 조회수
+    engagement_rate : float
+        참여율 (%)
+    avg_likes : int
+        평균 좋아요 수
+    avg_comments : int
+        평균 댓글 수
+    recent_90day_avg_views : int, optional
+        최근 90일 평균 조회수
+    content_format : str, optional
+        콘텐츠 포맷
+
+    Returns:
+    --------
+    dict : 계산 결과 및 세부 정보
     """
-    
-    # 수정된 글로벌 기준 먼저 계산
-    global_cost = estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate)
-    
-    # 한국 시장 조정 계수 (0.75 = 글로벌의 75% 수준)
-    # 검증 결과 "합리적임"으로 판단되어 기존 로직 유지
+
+    # 글로벌 기준 먼저 계산
+    global_cost = estimate_ad_cost_global(
+        subscriber_count, avg_views, engagement_rate,
+        avg_likes, avg_comments,
+        recent_90day_avg_views, content_format
+    )
+
+    # STEP 10: 한국 시장 조정 계수
     korea_adjustment = 0.75
-    
-    # 나노/마이크로 인플루언서는 한국에서 더 활발하므로 85% 적용
     if subscriber_count < 100000:
         korea_adjustment = 0.85
-    
-    # 최종 비용 계산
+
+    # STEP 11: 한국 최종 비용
     final_cost = int(global_cost['final_cost'] * korea_adjustment)
-    
+
+    # STEP 12: 비용 범위 산정
+    min_cost = int(final_cost * 0.85)
+    max_cost = int(final_cost * 1.15)
+
     return {
         'base_cost_cpm': int(global_cost['base_cost_cpm'] * korea_adjustment),
+        'recent_cpm_cost': int(global_cost['recent_cpm_cost'] * korea_adjustment),
         'tier_base': int(global_cost['tier_base'] * korea_adjustment),
         'base_cost': int(global_cost['base_cost'] * korea_adjustment),
+
+        'engagement_rate': global_cost['engagement_rate'],
         'engagement_multiplier': global_cost['engagement_multiplier'],
         'engagement_level': global_cost['engagement_level'],
-        'final_cost': final_cost,
-        'cpm_used': int(global_cost['cpm_used'] * korea_adjustment),
-        'korea_adjustment': korea_adjustment
-    }
 
+        'comment_like_ratio': global_cost['comment_like_ratio'],
+        'quality_multiplier': global_cost['quality_multiplier'],
+        'quality_level': global_cost['quality_level'],
+
+        'final_engagement_multiplier': global_cost['final_engagement_multiplier'],
+        'format_multiplier': global_cost['format_multiplier'],
+        'content_format': global_cost['content_format'],
+
+        'global_final_cost': global_cost['final_cost'],
+        'korea_adjustment': korea_adjustment,
+        'final_cost': final_cost,
+
+        'min_cost': min_cost,
+        'max_cost': max_cost,
+
+        'cpm_used': int(global_cost['cpm_used'] * korea_adjustment)
+    }
