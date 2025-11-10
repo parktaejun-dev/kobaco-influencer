@@ -1,6 +1,13 @@
 """
-유튜브 인플루언서 광고 비용 산출 모듈 (v4.3)
+유튜브 인플루언서 광고 비용 산출 모듈 (v4.4)
 2024-2025년 글로벌 벤치마크(PageOne Formula, Shopify, Descript 등) 기준 적용
+
+v4.4 개선사항 (2025-11):
+- 채널 프리미엄 할증 시스템 추가
+  * 성장세 프리미엄 (최근 90일 vs 전체)
+  * 업로드 일관성 프리미엄
+  * 팬덤 충성도 프리미엄
+  * 모든 프리미엄 계수 통합 적용
 
 v4.3 개선사항 (2025-11):
 - 스마트 티어 시스템 도입 (채널 건강도 평가)
@@ -123,6 +130,315 @@ def calculate_channel_health(subscriber_count, avg_views):
             'description': '채널이 거의 활동하지 않습니다. 구독자 수만 남은 상태입니다.',
             'color': '#d32f2f'
         }
+
+
+# ============================================
+# 채널 프리미엄 할증 시스템 (v4.4)
+# ============================================
+
+def calculate_growth_multiplier(avg_views, recent_90day_avg_views):
+    """
+    채널 성장세 프리미엄/할인 계수 계산
+
+    최근 90일 평균 조회수와 전체 평균 비교
+    - 증가 추세 = 프리미엄 (떠오르는 채널)
+    - 감소 추세 = 할인 (하락하는 채널)
+
+    Parameters:
+    -----------
+    avg_views : int
+        전체 평균 조회수
+    recent_90day_avg_views : int
+        최근 90일 평균 조회수
+
+    Returns:
+    --------
+    dict : {
+        'multiplier': 성장세 계수,
+        'growth_rate': 성장률 (%),
+        'status': 성장 상태,
+        'description': 설명
+    }
+    """
+
+    # 최근 데이터가 없으면 중립
+    if not recent_90day_avg_views or avg_views == 0:
+        return {
+            'multiplier': 1.0,
+            'growth_rate': 0,
+            'status': '데이터 부족',
+            'description': '최근 90일 데이터 없음'
+        }
+
+    # 성장률 계산 (%)
+    growth_rate = ((recent_90day_avg_views - avg_views) / avg_views) * 100
+
+    # 성장률에 따른 평가 및 계수 결정
+    if growth_rate >= 50:
+        # 급성장
+        multiplier = 1.15
+        status = "🚀 급성장"
+        description = f"최근 3개월 조회수가 {growth_rate:+.1f}% 증가한 떠오르는 채널입니다."
+
+    elif growth_rate >= 20:
+        # 고성장
+        multiplier = 1.10
+        status = "📈 고성장"
+        description = f"최근 3개월 조회수가 {growth_rate:+.1f}% 증가한 성장 채널입니다."
+
+    elif growth_rate >= 10:
+        # 성장
+        multiplier = 1.05
+        status = "📊 성장"
+        description = f"최근 3개월 조회수가 {growth_rate:+.1f}% 완만하게 증가하고 있습니다."
+
+    elif growth_rate >= -10:
+        # 안정 (기준점)
+        multiplier = 1.0
+        status = "➡️ 안정"
+        description = f"최근 3개월 조회수가 안정적입니다 ({growth_rate:+.1f}%)."
+
+    elif growth_rate >= -20:
+        # 감소
+        multiplier = 0.95
+        status = "📉 감소"
+        description = f"최근 3개월 조회수가 {growth_rate:.1f}% 감소하고 있습니다."
+
+    else:
+        # 급감
+        multiplier = 0.90
+        status = "⬇️ 급감"
+        description = f"최근 3개월 조회수가 {growth_rate:.1f}% 급감하고 있습니다. 주의가 필요합니다."
+
+    return {
+        'multiplier': multiplier,
+        'growth_rate': round(growth_rate, 1),
+        'status': status,
+        'description': description
+    }
+
+
+def calculate_consistency_multiplier(video_count, channel_age_days=None):
+    """
+    업로드 일관성 프리미엄/할인 계수 계산
+
+    규칙적인 업로드 = 신뢰도 높음 = 프리미엄
+    불규칙한 업로드 = 예측 어려움 = 할인
+
+    Parameters:
+    -----------
+    video_count : int
+        총 영상 개수
+    channel_age_days : int, optional
+        채널 개설 일수
+
+    Returns:
+    --------
+    dict : {
+        'multiplier': 일관성 계수,
+        'upload_frequency': 업로드 빈도,
+        'status': 일관성 상태,
+        'description': 설명
+    }
+    """
+
+    # 채널 나이 정보가 있으면 더 정확한 계산 가능
+    if channel_age_days and channel_age_days > 0:
+        # 주당 업로드 횟수 계산
+        weeks = channel_age_days / 7
+        uploads_per_week = video_count / weeks if weeks > 0 else 0
+
+        if uploads_per_week >= 2:
+            # 매우 규칙적 (주 2회 이상)
+            multiplier = 1.05
+            status = "🎯 매우 규칙적"
+            upload_frequency = f"주 {uploads_per_week:.1f}회"
+            description = "업로드가 매우 규칙적입니다. 광고 영상도 안정적으로 노출될 것으로 예상됩니다."
+
+        elif uploads_per_week >= 1:
+            # 규칙적 (주 1회) - 기준점
+            multiplier = 1.0
+            status = "✅ 규칙적"
+            upload_frequency = f"주 {uploads_per_week:.1f}회"
+            description = "업로드가 규칙적입니다. 광고 효과가 안정적으로 예상됩니다."
+
+        elif uploads_per_week >= 0.5:
+            # 불규칙 (월 2-3회)
+            multiplier = 0.95
+            status = "⚠️ 불규칙"
+            upload_frequency = f"월 {uploads_per_week * 4:.1f}회"
+            description = "업로드가 다소 불규칙합니다. 광고 타이밍 조율이 필요할 수 있습니다."
+
+        else:
+            # 비활성 (월 1회 미만)
+            multiplier = 0.90
+            status = "🔴 비활성"
+            upload_frequency = f"월 {uploads_per_week * 4:.1f}회"
+            description = "업로드 빈도가 낮습니다. 광고 효과가 제한적일 수 있습니다."
+
+    else:
+        # 채널 나이 정보 없으면 영상 개수만으로 단순 평가
+        if video_count >= 200:
+            multiplier = 1.05
+            status = "🎯 활발"
+            upload_frequency = f"총 {video_count}개"
+            description = "영상이 풍부한 활발한 채널입니다."
+        elif video_count >= 50:
+            multiplier = 1.0
+            status = "✅ 정상"
+            upload_frequency = f"총 {video_count}개"
+            description = "적절한 콘텐츠 양을 보유한 채널입니다."
+        else:
+            multiplier = 0.95
+            status = "⚠️ 제한적"
+            upload_frequency = f"총 {video_count}개"
+            description = "영상 개수가 다소 적은 채널입니다."
+
+    return {
+        'multiplier': multiplier,
+        'upload_frequency': upload_frequency,
+        'status': status,
+        'description': description
+    }
+
+
+def calculate_loyalty_multiplier(avg_views, avg_comments, subscriber_count):
+    """
+    팬덤 충성도 프리미엄 계수 계산
+
+    활발한 댓글 = 충성도 높은 팬덤 = 프리미엄
+
+    Parameters:
+    -----------
+    avg_views : int
+        평균 조회수
+    avg_comments : int
+        평균 댓글 수
+    subscriber_count : int
+        구독자 수
+
+    Returns:
+    --------
+    dict : {
+        'multiplier': 팬덤 계수,
+        'comment_view_ratio': 댓글/조회수 비율 (%),
+        'status': 팬덤 상태,
+        'description': 설명
+    }
+    """
+
+    # 조회수가 0이면 계산 불가
+    if avg_views == 0:
+        return {
+            'multiplier': 1.0,
+            'comment_view_ratio': 0,
+            'status': '데이터 부족',
+            'description': '조회수 데이터 없음'
+        }
+
+    # 댓글/조회수 비율 계산 (%)
+    comment_view_ratio = (avg_comments / avg_views) * 100
+
+    # 비율에 따른 팬덤 충성도 평가
+    if comment_view_ratio >= 0.5:
+        # 매우 활발한 팬덤
+        multiplier = 1.10
+        status = "💬 매우 활발"
+        description = "댓글이 매우 활발한 채널입니다. 충성도 높은 팬덤을 보유하고 있습니다."
+
+    elif comment_view_ratio >= 0.3:
+        # 활발한 팬덤
+        multiplier = 1.05
+        status = "💬 활발"
+        description = "댓글이 활발한 채널입니다. 팬덤의 반응이 좋습니다."
+
+    elif comment_view_ratio >= 0.1:
+        # 정상 팬덤 (기준점)
+        multiplier = 1.0
+        status = "✅ 정상"
+        description = "정상적인 수준의 댓글 활동이 있습니다."
+
+    else:
+        # 저조한 팬덤
+        multiplier = 0.97
+        status = "📉 저조"
+        description = "댓글 활동이 다소 적습니다. 팬덤 참여도가 낮은 편입니다."
+
+    return {
+        'multiplier': multiplier,
+        'comment_view_ratio': round(comment_view_ratio, 3),
+        'status': status,
+        'description': description
+    }
+
+
+def calculate_total_premium(subscriber_count, avg_views,
+                           recent_90day_avg_views, video_count,
+                           avg_comments, channel_age_days=None):
+    """
+    모든 프리미엄 요소를 종합하여 최종 프리미엄 계수 계산
+
+    Parameters:
+    -----------
+    subscriber_count : int
+        구독자 수
+    avg_views : int
+        평균 조회수
+    recent_90day_avg_views : int
+        최근 90일 평균 조회수
+    video_count : int
+        총 영상 개수
+    avg_comments : int
+        평균 댓글 수
+    channel_age_days : int, optional
+        채널 개설 일수
+
+    Returns:
+    --------
+    dict : {
+        'total_multiplier': 총 프리미엄 계수,
+        'health': 건강도 상세,
+        'growth': 성장세 상세,
+        'consistency': 일관성 상세,
+        'loyalty': 팬덤 상세,
+        'summary': 종합 요약
+    }
+    """
+
+    # 각 요소별 계수 계산
+    health = calculate_channel_health(subscriber_count, avg_views)
+    growth = calculate_growth_multiplier(avg_views, recent_90day_avg_views)
+    consistency = calculate_consistency_multiplier(video_count, channel_age_days)
+    loyalty = calculate_loyalty_multiplier(avg_views, avg_comments, subscriber_count)
+
+    # 총 프리미엄 계수 계산 (곱셈)
+    total_multiplier = (
+        health['multiplier'] *
+        growth['multiplier'] *
+        consistency['multiplier'] *
+        loyalty['multiplier']
+    )
+
+    # 종합 요약 생성
+    premium_pct = (total_multiplier - 1.0) * 100
+
+    if premium_pct > 10:
+        summary = f"🔥 우수 채널 (프리미엄 +{premium_pct:.1f}%)"
+    elif premium_pct > 0:
+        summary = f"✅ 양호 채널 (프리미엄 +{premium_pct:.1f}%)"
+    elif premium_pct > -10:
+        summary = f"➡️ 보통 채널 (조정 {premium_pct:+.1f}%)"
+    else:
+        summary = f"⚠️ 주의 채널 (할인 {premium_pct:.1f}%)"
+
+    return {
+        'total_multiplier': round(total_multiplier, 3),
+        'health': health,
+        'growth': growth,
+        'consistency': consistency,
+        'loyalty': loyalty,
+        'summary': summary
+    }
 
 
 def get_influencer_tier(subscriber_count):
@@ -269,11 +585,14 @@ def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
 def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
                           avg_likes, avg_comments,
                           recent_90day_avg_views=None,
+                          video_count=10,
+                          channel_age_days=None,
                           cpm_krw=30000):
     """
-    한국 시장 기준 광고 비용 산출 로직 - v4.3
+    한국 시장 기준 광고 비용 산출 로직 - v4.4
 
     브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 단순 노출)
+    v4.4: 채널 프리미엄 할증 시스템 통합
     v4.3: 스마트 티어 시스템 (채널 건강도 반영)
     v4.2: 티어별 최소 보장 금액 합리화
 
@@ -291,6 +610,10 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
         평균 댓글 수
     recent_90day_avg_views : int, optional
         최근 90일 평균 조회수
+    video_count : int, optional
+        총 영상 개수
+    channel_age_days : int, optional
+        채널 개설 일수
     cpm_krw : int, optional
         1,000뷰당 비용 (기본값: 30,000원)
 
@@ -306,26 +629,30 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
         recent_90day_avg_views, cpm_krw
     )
 
-    # STEP 10: 채널 건강도 계산 (v4.3 신규)
-    channel_health = calculate_channel_health(subscriber_count, avg_views)
+    # STEP 10: 채널 프리미엄 계수 (v4.4 신규)
+    premium_data = calculate_total_premium(
+        subscriber_count=subscriber_count,
+        avg_views=avg_views,
+        recent_90day_avg_views=recent_90day_avg_views,
+        video_count=video_count,
+        avg_comments=avg_comments,
+        channel_age_days=channel_age_days
+    )
+
+    channel_premium_multiplier = premium_data['total_multiplier']
 
     # STEP 11: 한국 시장 조정 계수
     korea_adjustment = 0.75
     if subscriber_count < 100000:
         korea_adjustment = 0.85
 
-    # STEP 12: 한국 최종 비용 (채널 건강도 조정 반영)
-    # 건강도 조정: 티어 최소 보장 금액에만 적용 (CPM은 실제 조회수 반영이므로 제외)
-    adjusted_tier_base = int(global_cost['tier_base'] * korea_adjustment * channel_health['multiplier'])
-    adjusted_base_cost = int(global_cost['base_cost'] * korea_adjustment)
+    # STEP 12: 한국 최종 비용 (채널 프리미엄 반영)
+    global_final_cost = int(
+        global_cost['final_cost'] *
+        channel_premium_multiplier
+    )
 
-    # 최종 비용: 조정된 기본 비용 사용
-    if global_cost['base_cost'] == global_cost['tier_base']:
-        # 티어 최소값이 적용된 경우: 건강도 조정 반영
-        final_cost = int(global_cost['final_cost'] * korea_adjustment * channel_health['multiplier'])
-    else:
-        # CPM이 적용된 경우: 건강도 조정 미반영 (실제 조회수 이미 반영됨)
-        final_cost = int(global_cost['final_cost'] * korea_adjustment)
+    final_cost = int(global_final_cost * korea_adjustment)
 
     # STEP 13: 비용 범위 산정
     min_cost = int(final_cost * 0.85)
@@ -347,11 +674,11 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
 
         'final_engagement_multiplier': global_cost['final_engagement_multiplier'],
 
-        # 채널 건강도 정보 (v4.3 신규)
-        'channel_health': channel_health,
-        'health_adjusted_tier_base': adjusted_tier_base,
+        # 채널 프리미엄 정보 (v4.4 신규)
+        'channel_premium_multiplier': channel_premium_multiplier,
+        'premium_details': premium_data,
 
-        'global_final_cost': global_cost['final_cost'],
+        'global_final_cost': global_final_cost,
         'korea_adjustment': korea_adjustment,
         'final_cost': final_cost,
 
