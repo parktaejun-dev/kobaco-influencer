@@ -337,12 +337,15 @@ if youtube_api_loaded and youtube_api_key:
 
                     tier_name, tier_range = cost_calculator.get_influencer_tier(subscriber_count)
 
+                    # 전체 평균 조회수 계산
+                    overall_avg_views = total_view_count / video_count if video_count > 0 else 0
+
                     # 최근 영상 분석
                     uploads_playlist_id = channel_info['contentDetails']['relatedPlaylists']['uploads']
                     recent_videos = get_recent_videos(uploads_playlist_id, youtube_api_key, max_results=10)
 
                     if recent_videos:
-                        avg_views = calculate_average_views(recent_videos)
+                        recent_avg_views = calculate_average_views(recent_videos)
                         avg_likes, avg_comments = calculate_average_stats(recent_videos)
 
                         engagement_rates = [
@@ -350,6 +353,18 @@ if youtube_api_loaded and youtube_api_key:
                             for video in recent_videos
                         ]
                         avg_engagement_rate = sum(engagement_rates) / len(engagement_rates)
+
+                        # 전체 평균과 최근 평균 비교
+                        overall_ratio = (overall_avg_views / subscriber_count) * 100 if subscriber_count > 0 else 0
+                        recent_ratio = (recent_avg_views / subscriber_count) * 100 if subscriber_count > 0 else 0
+
+                        # 더 유리한 값 사용 (채널 보호)
+                        if overall_ratio > recent_ratio:
+                            avg_views = overall_avg_views
+                            ratio_note = f"전체 평균 {overall_ratio:.1f}%를 사용 (최근 {recent_ratio:.1f}%보다 높음)"
+                        else:
+                            avg_views = recent_avg_views
+                            ratio_note = f"최근 평균 {recent_ratio:.1f}%를 사용 (전체 {overall_ratio:.1f}%보다 높음)"
 
                         # 비용 계산 (v4.4 - 프리미엄 할증 포함)
                         cost_data = cost_calculator.estimate_ad_cost_korea(
@@ -384,10 +399,55 @@ if youtube_api_loaded and youtube_api_key:
 
                         # 참여 지표
                         st.markdown("---")
-                        st.subheader("📈 참여 지표 (최근 10개 영상)")
+                        st.subheader("📈 참여 지표")
 
+                        # 전체 평균 vs 최근 평균 비교
+                        ratio_diff = abs(overall_ratio - recent_ratio)
+                        if ratio_diff > 3:
+                            # 차이가 3%p 이상이면 알림 표시
+                            if overall_ratio > recent_ratio:
+                                st.info(f"💡 **조회수 분석**: 최근 영상이 전체 평균보다 낮지만, 더 유리한 전체 평균({overall_ratio:.1f}%)으로 평가합니다. 일시적 변동을 채널 건강도로 오판하지 않습니다.")
+                            else:
+                                st.success(f"🚀 **성장 중**: 최근 영상이 전체 평균({overall_ratio:.1f}%)보다 높습니다({recent_ratio:.1f}%). 최근 평균으로 평가합니다.")
+
+                        # 전체 평균과 최근 평균을 나란히 표시
+                        comp_col1, comp_col2 = st.columns(2)
+
+                        with comp_col1:
+                            st.markdown(f"""
+                            <div style="background: rgba(33, 150, 243, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3;">
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">
+                                    전체 평균 (총 {video_count}개 영상)
+                                </div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #2196f3;">
+                                    {format_number(int(overall_avg_views))}회
+                                </div>
+                                <div style="font-size: 0.85em; color: #555; margin-top: 5px;">
+                                    구독자 대비: {overall_ratio:.1f}%
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                        with comp_col2:
+                            st.markdown(f"""
+                            <div style="background: rgba(76, 175, 80, 0.1); padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50;">
+                                <div style="font-size: 0.9em; color: #666; margin-bottom: 5px;">
+                                    최근 평균 (최근 10개 영상)
+                                </div>
+                                <div style="font-size: 1.5em; font-weight: bold; color: #4caf50;">
+                                    {format_number(int(recent_avg_views))}회
+                                </div>
+                                <div style="font-size: 0.85em; color: #555; margin-top: 5px;">
+                                    구독자 대비: {recent_ratio:.1f}%
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                        st.caption(f"💡 비용 산정 기준: **{ratio_note}**")
+
+                        st.markdown("**최근 10개 영상 상세 지표:**")
                         metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
-                        metric_col1.metric("평균 조회수", format_number(avg_views))
+                        metric_col1.metric("평균 조회수", format_number(int(recent_avg_views)))
                         metric_col2.metric("평균 참여율", f"{avg_engagement_rate:.2f}%")
                         metric_col3.metric("평균 좋아요", format_number(avg_likes))
                         metric_col4.metric("평균 댓글", format_number(avg_comments))
