@@ -219,14 +219,8 @@ def get_channel_info_by_username(username, api_key):
     return None
 
 @st.cache_data(ttl=600)  # 10분간 캐시
-def get_recent_videos(channel_id, api_key, max_results=10):
+def get_recent_videos(uploads_playlist_id, api_key, max_results=10):
     """최근 업로드된 비디오 정보를 가져오는 함수"""
-    channel_info = get_channel_info_by_id(channel_id, api_key)
-    if not channel_info:
-        return []
-
-    uploads_playlist_id = channel_info['contentDetails']['relatedPlaylists']['uploads']
-
     url = "https://www.googleapis.com/youtube/v3/playlistItems"
     params = {
         'part': 'contentDetails',
@@ -332,7 +326,8 @@ if youtube_api_loaded and youtube_api_key:
                     tier_name, tier_range = cost_calculator.get_influencer_tier(subscriber_count)
 
                     # 최근 영상 분석
-                    recent_videos = get_recent_videos(channel_info['id'], youtube_api_key, max_results=10)
+                    uploads_playlist_id = channel_info['contentDetails']['relatedPlaylists']['uploads']
+                    recent_videos = get_recent_videos(uploads_playlist_id, youtube_api_key, max_results=10)
 
                     if recent_videos:
                         avg_views = calculate_average_views(recent_videos)
@@ -522,6 +517,8 @@ if youtube_api_loaded and youtube_api_key:
                             help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원",
                             key='cpm_slider'
                         )
+
+                        st.info(f"🔄 현재 CPM 설정: {format_number(cpm_value)}원 - 슬라이더를 움직이면 아래 비용이 즉시 업데이트됩니다")
 
                         # CPM 값으로 비용 재계산
                         cost_data = cost_calculator.estimate_ad_cost_korea(
