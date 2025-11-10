@@ -535,6 +535,15 @@ if youtube_api_loaded and youtube_api_key:
                         min_cost = cost_data['min_cost']
                         max_cost = cost_data['max_cost']
 
+                        # CPM vs 티어 최소값 비교 표시
+                        base_cpm_calc = int((avg_views / 1000) * cpm_value)
+                        tier_base = cost_data.get('tier_base', 0)
+
+                        if tier_base > base_cpm_calc:
+                            st.warning(f"⚠️ 현재 티어 최소 보장 금액({format_number(tier_base)}원)이 CPM 계산값({format_number(base_cpm_calc)}원)보다 높아 최소 보장 금액이 적용되었습니다. CPM을 높이면 비용이 증가합니다.")
+                        else:
+                            st.success(f"✅ CPM 기반 계산이 적용되었습니다. 슬라이더 조정 시 비용이 즉시 변경됩니다.")
+
                         # 광고 비용 표시
                         st.markdown("---")
                         st.subheader("💰 1회 광고 적정 비용")
