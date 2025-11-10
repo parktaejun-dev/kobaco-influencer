@@ -219,14 +219,8 @@ def get_channel_info_by_username(username, api_key):
     return None
 
 @st.cache_data(ttl=600)  # 10분간 캐시
-def get_recent_videos(channel_id, api_key, max_results=10):
+def get_recent_videos(uploads_playlist_id, api_key, max_results=10):
     """최근 업로드된 비디오 정보를 가져오는 함수"""
-    channel_info = get_channel_info_by_id(channel_id, api_key)
-    if not channel_info:
-        return []
-
-    uploads_playlist_id = channel_info['contentDetails']['relatedPlaylists']['uploads']
-
     url = "https://www.googleapis.com/youtube/v3/playlistItems"
     params = {
         'part': 'contentDetails',
@@ -332,7 +326,8 @@ if youtube_api_loaded and youtube_api_key:
                     tier_name, tier_range = cost_calculator.get_influencer_tier(subscriber_count)
 
                     # 최근 영상 분석
-                    recent_videos = get_recent_videos(channel_info['id'], youtube_api_key, max_results=10)
+                    uploads_playlist_id = channel_info['contentDetails']['relatedPlaylists']['uploads']
+                    recent_videos = get_recent_videos(uploads_playlist_id, youtube_api_key, max_results=10)
 
                     if recent_videos:
                         avg_views = calculate_average_views(recent_videos)
