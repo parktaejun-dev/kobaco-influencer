@@ -599,7 +599,7 @@ if youtube_api_loaded and youtube_api_key:
                                         {health['emoji']} 채널 건강도
                                     </div>
                                     <div style="color: #555; margin-bottom: 5px;">
-                                        상태: <strong>{health['status']}</strong> (×{health['multiplier']})
+                                        상태: <strong>{health['level']}</strong> (×{health['multiplier']})
                                     </div>
                                     <div style="font-size: 0.85em; color: #666;">
                                         {health['description']}
