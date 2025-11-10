@@ -1,6 +1,13 @@
 """
-유튜브 인플루언서 광고 비용 산출 모듈 (v4.2)
+유튜브 인플루언서 광고 비용 산출 모듈 (v4.3)
 2024-2025년 글로벌 벤치마크(PageOne Formula, Shopify, Descript 등) 기준 적용
+
+v4.3 개선사항 (2025-11):
+- 스마트 티어 시스템 도입 (채널 건강도 평가)
+  * 조회수/구독자 비율 기반 건강도 계산
+  * 8단계 세분화된 건강도 기준
+  * 건강도에 따른 티어 조정 계수 적용 (0.3x ~ 1.2x)
+  * "구독자 뻥튀기" 문제 해결
 
 v4.2 개선사항 (2025-11):
 - 티어별 최소 보장 금액 합리화
@@ -16,6 +23,107 @@ v4.1 개선사항:
 - 참여 질 보정 추가 (댓글/좋아요 비율)
 - CPM 기본값 30,000원으로 조정 (시장 반영)
 """
+
+def calculate_channel_health(subscriber_count, avg_views):
+    """
+    채널 건강도 계산 (조회수/구독자 비율 기반)
+
+    Parameters:
+    -----------
+    subscriber_count : int
+        구독자 수
+    avg_views : int
+        평균 조회수
+
+    Returns:
+    --------
+    dict : {
+        'ratio': 조회수/구독자 비율 (%),
+        'level': 건강도 등급,
+        'emoji': 이모지,
+        'multiplier': 티어 조정 계수,
+        'description': 설명
+    }
+    """
+    if subscriber_count == 0:
+        ratio = 0
+    else:
+        ratio = (avg_views / subscriber_count) * 100
+
+    # 8단계 세분화된 건강도 기준
+    if ratio >= 30:
+        return {
+            'ratio': ratio,
+            'level': '초건강',
+            'emoji': '🔥',
+            'multiplier': 1.2,
+            'description': '매우 활발한 채널! 구독자 참여도가 탁월합니다.',
+            'color': '#ff6b35'
+        }
+    elif ratio >= 20:
+        return {
+            'ratio': ratio,
+            'level': '매우 건강',
+            'emoji': '✅',
+            'multiplier': 1.1,
+            'description': '매우 건강한 채널입니다. 높은 구독자 참여도를 보입니다.',
+            'color': '#4caf50'
+        }
+    elif ratio >= 15:
+        return {
+            'ratio': ratio,
+            'level': '건강',
+            'emoji': '✅',
+            'multiplier': 1.0,
+            'description': '건강한 채널입니다. 양호한 구독자 참여도를 보입니다.',
+            'color': '#8bc34a'
+        }
+    elif ratio >= 10:
+        return {
+            'ratio': ratio,
+            'level': '정상',
+            'emoji': '⚖️',
+            'multiplier': 1.0,
+            'description': '정상 범위의 채널입니다. 평균적인 구독자 참여도입니다.',
+            'color': '#9e9e9e'
+        }
+    elif ratio >= 7:
+        return {
+            'ratio': ratio,
+            'level': '약간 약화',
+            'emoji': '⚠️',
+            'multiplier': 0.8,
+            'description': '구독자 대비 조회수가 약간 낮습니다.',
+            'color': '#ff9800'
+        }
+    elif ratio >= 5:
+        return {
+            'ratio': ratio,
+            'level': '약화',
+            'emoji': '⚠️',
+            'multiplier': 0.7,
+            'description': '구독자 대비 조회수가 낮습니다. 채널 활성화가 필요합니다.',
+            'color': '#ff9800'
+        }
+    elif ratio >= 3:
+        return {
+            'ratio': ratio,
+            'level': '죽어감',
+            'emoji': '🟡',
+            'multiplier': 0.5,
+            'description': '채널 활동이 크게 저하되었습니다. 구독자 이탈이 심각합니다.',
+            'color': '#f44336'
+        }
+    else:
+        return {
+            'ratio': ratio,
+            'level': '죽음',
+            'emoji': '🔴',
+            'multiplier': 0.3,
+            'description': '채널이 거의 활동하지 않습니다. 구독자 수만 남은 상태입니다.',
+            'color': '#d32f2f'
+        }
+
 
 def get_influencer_tier(subscriber_count):
     """
@@ -163,9 +271,10 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
                           recent_90day_avg_views=None,
                           cpm_krw=30000):
     """
-    한국 시장 기준 광고 비용 산출 로직 - v4.2
+    한국 시장 기준 광고 비용 산출 로직 - v4.3
 
     브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 단순 노출)
+    v4.3: 스마트 티어 시스템 (채널 건강도 반영)
     v4.2: 티어별 최소 보장 금액 합리화
 
     Parameters:
@@ -197,15 +306,28 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
         recent_90day_avg_views, cpm_krw
     )
 
-    # STEP 10: 한국 시장 조정 계수
+    # STEP 10: 채널 건강도 계산 (v4.3 신규)
+    channel_health = calculate_channel_health(subscriber_count, avg_views)
+
+    # STEP 11: 한국 시장 조정 계수
     korea_adjustment = 0.75
     if subscriber_count < 100000:
         korea_adjustment = 0.85
 
-    # STEP 11: 한국 최종 비용
-    final_cost = int(global_cost['final_cost'] * korea_adjustment)
+    # STEP 12: 한국 최종 비용 (채널 건강도 조정 반영)
+    # 건강도 조정: 티어 최소 보장 금액에만 적용 (CPM은 실제 조회수 반영이므로 제외)
+    adjusted_tier_base = int(global_cost['tier_base'] * korea_adjustment * channel_health['multiplier'])
+    adjusted_base_cost = int(global_cost['base_cost'] * korea_adjustment)
 
-    # STEP 12: 비용 범위 산정
+    # 최종 비용: 조정된 기본 비용 사용
+    if global_cost['base_cost'] == global_cost['tier_base']:
+        # 티어 최소값이 적용된 경우: 건강도 조정 반영
+        final_cost = int(global_cost['final_cost'] * korea_adjustment * channel_health['multiplier'])
+    else:
+        # CPM이 적용된 경우: 건강도 조정 미반영 (실제 조회수 이미 반영됨)
+        final_cost = int(global_cost['final_cost'] * korea_adjustment)
+
+    # STEP 13: 비용 범위 산정
     min_cost = int(final_cost * 0.85)
     max_cost = int(final_cost * 1.15)
 
@@ -224,6 +346,10 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
         'quality_level': global_cost['quality_level'],
 
         'final_engagement_multiplier': global_cost['final_engagement_multiplier'],
+
+        # 채널 건강도 정보 (v4.3 신규)
+        'channel_health': channel_health,
+        'health_adjusted_tier_base': adjusted_tier_base,
 
         'global_final_cost': global_cost['final_cost'],
         'korea_adjustment': korea_adjustment,
