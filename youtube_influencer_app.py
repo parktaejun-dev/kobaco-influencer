@@ -184,6 +184,7 @@ def extract_channel_id(url):
 
     return None, None
 
+@st.cache_data(ttl=600)  # 10분간 캐시
 def get_channel_info_by_id(channel_id, api_key):
     """채널 ID로 채널 정보를 가져오는 함수"""
     url = "https://www.googleapis.com/youtube/v3/channels"
@@ -200,6 +201,7 @@ def get_channel_info_by_id(channel_id, api_key):
         return data['items'][0]
     return None
 
+@st.cache_data(ttl=600)  # 10분간 캐시
 def get_channel_info_by_username(username, api_key):
     """사용자 이름으로 채널 정보를 가져오는 함수"""
     url = "https://www.googleapis.com/youtube/v3/channels"
@@ -216,6 +218,7 @@ def get_channel_info_by_username(username, api_key):
         return data['items'][0]
     return None
 
+@st.cache_data(ttl=600)  # 10분간 캐시
 def get_recent_videos(channel_id, api_key, max_results=10):
     """최근 업로드된 비디오 정보를 가져오는 함수"""
     channel_info = get_channel_info_by_id(channel_id, api_key)
