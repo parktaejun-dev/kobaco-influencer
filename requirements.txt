@@ -11,3 +11,7 @@ requests==2.31.0
 # 데이터 처리 및 시각화 (v3.1 추가)
 
 pandas
+
+# AI 분석 (v4.0 추가)
+
+google-generativeai
