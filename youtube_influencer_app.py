@@ -301,8 +301,7 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
         video_summary = "\n".join(video_info)
 
         prompt = f"""
-다음 유튜브 채널에 대한 인플루언서 마케팅 분석을 수행해주세요.
-**브랜드 안전성을 최우선으로 평가**하고, 광고 집행 가능 여부를 판단해주세요.
+다음 유튜브 채널을 브랜드 세이프티 체크리스트에 따라 분석해주세요.
 
 ## 채널 정보
 - 채널명: {channel_name}
@@ -314,71 +313,98 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
 ## 최근 5개 영상
 {video_summary}
 
-다음 항목을 분석하여 JSON 형식으로 답변해주세요:
+## 체크리스트
 
-### 1. 브랜드 안전성 (Brand Safety) - 최우선 평가
-- **score** (0-100): 브랜드 이미지 손상 위험도 평가
-  - 80-100: 매우 안전 (논란 없음, 전문적 콘텐츠)
-  - 70-79: 안전 (일반적 수준)
-  - 50-69: 주의 필요 (일부 우려사항 있음)
-  - 0-49: 위험 (브랜드 이미지 손상 가능성)
+### 1. 콘텐츠 안전성 (Content Safety)
+- **선정성**: 선정적 표현, 노출 의상, 성적 암시 여부 (0-100점)
+- **폭력성**: 폭력 장면, 위험 행동, 혐오스러운 이미지 (0-100점)
+- **혐오/차별**: 인종/성별/장애 차별, 외모 비하 (0-100점)
+- **언어**: 욕설, 비속어, 공격적 표현 (0-100점)
 
-### 2. 리스크 평가 (Risk Assessment)
-- **level**: "low" / "medium" / "high"
-- **red_flags**: 발견된 심각한 문제점 리스트 (비속어, 논란, 부적절한 콘텐츠 등)
-- **concerns**: 주의가 필요한 사항 리스트
+### 2. 법적/윤리적 리스크 (Legal & Ethics)
+- **저작권**: 무단 사용, 저작권 경고 이력 (0-100점)
+- **허위정보**: 검증 안 된 정보, 가짜뉴스 (0-100점)
+- **불법 행위**: 불법 미화, 탈법 조장 (0-100점)
+- **광고 표시**: 협찬 숨김, 표기 의무 위반 (0-100점)
 
-### 3. 광고 집행 권고 (Recommendation)
-- **action**: "proceed" (진행 가능) / "caution" (신중 검토) / "block" (중단 권고)
-- **reason**: 판단 근거 (1-2문장)
+### 3. 평판 리스크 (Reputation Risk)
+- **과거 논란**: 스캔들, 법적 분쟁 (0-100점)
+- **정치/종교**: 극단적 입장, 특정 지지 (0-100점)
+- **구독자 평판**: 댓글 반응, 안티 여부 (0-100점)
 
-### 4. 콘텐츠 품질 (Content Quality)
-- **score** (0-100): 콘텐츠 전문성 및 품질
-- **professionalism**: "high" / "medium" / "low"
-- **consistency**: "excellent" / "good" / "inconsistent"
+### 4. 커뮤니티 건전성 (Community Health)
+- **댓글 관리**: 악성 댓글 대응 (0-100점)
+- **구독자 특성**: 유기적 성장, 봇 의심 (0-100점)
+- **타 인플루언서**: 논란 인물 협업 (0-100점)
 
-### 5. 예상 광고 효과 (Ad Effect)
-**조회수 예측:**
-- 최소: 최근 10개 영상 중 하위 20% 평균
-- 평균: 최근 10개 영상 전체 평균
-- 최대: 최근 10개 영상 중 상위 20% 평균
-- basis: 예측 근거 설명
+### 5. 브랜드 적합성 (Brand Fit)
+- **가치관 부합**: 브랜드 이미지 일치 (0-100점)
+- **경쟁사**: 최근 협업 이력 (0-100점)
+- **광고 품질**: 과거 협찬 퀄리티 (0-100점)
 
-**클릭률 (CTR) 예측:**
-- 유튜브 인플루언서 PPL 평균 CTR: 3-5%
-- 채널의 참여율을 고려하여 예측
-- basis: 예측 근거 설명
+### 6. 추가 확인 사항 (Additional Checks)
+- **채널 투명성**: 운영자 정보 공개 (0-100점)
+- **콘텐츠 일관성**: 주제 일관성, 업로드 주기 (0-100점)
+- **플랫폼 정책**: 커뮤니티 가이드라인 위반 이력 (0-100점)
 
-**전환율 예측:**
-- 인플루언서 마케팅 평균 전환율: 1-2%
-- 채널 타겟과 콘텐츠 품질을 고려
-- basis: 예측 근거 설명
+각 카테고리별로 0-100점을 부여하고, 발견된 리스크를 분석해주세요.
 
-**예상 전환 고객 수:**
-- 계산식: 조회수 × CTR × 전환율
-- 최소/평균/최대 각각 계산
+### 광고 효과 예측
+**조회수 예측**: 최근 10개 영상 기준으로 최소/평균/최대 예측
+**AI 해설**: 광고 효과에 대한 종합 의견 (2-3문장)
 
-**AI 해설:**
-- summary: 광고 효과에 대한 전반적인 요약 및 해설 (2-3문장)
-
-주의: ROI는 제품 단가를 알 수 없으므로 계산하지 마세요.
-
-### 6. 상세 분석 (Detailed Analysis)
-- **target_audience**: 타겟 오디언스 (연령대, 관심사)
-- **strengths**: 강점 리스트 (3-5개)
-- **weaknesses**: 약점 리스트 (있다면)
+### 상세 분석
+- **타겟 오디언스**: 연령대, 관심사
+- **강점**: 3-5개
+- **약점**: 있다면 나열
 
 반드시 다음 JSON 형식으로만 답변하세요:
 {{
-  "brand_safety": {{
-    "score": 85,
-    "checklist": {{
-      "inappropriate_content": {{"status": "pass", "detail": "부적절한 콘텐츠 없음"}},
-      "controversial_topics": {{"status": "pass", "detail": "논란 주제 없음"}},
-      "profanity": {{"status": "pass", "detail": "비속어 사용 없음"}},
-      "brand_alignment": {{"status": "pass", "detail": "브랜드 이미지와 부합"}}
-    }}
+  "content_safety": {{
+    "score": 90,
+    "sexual_content": 95,
+    "violence": 95,
+    "hate_speech": 95,
+    "language": 85,
+    "issues": ["경미한 욕설 1-2회 사용"]
   }},
+  "legal_ethics": {{
+    "score": 95,
+    "copyright": 95,
+    "misinformation": 95,
+    "illegal_activity": 100,
+    "ad_disclosure": 95,
+    "issues": []
+  }},
+  "reputation": {{
+    "score": 85,
+    "past_controversies": 90,
+    "political_religious": 95,
+    "subscriber_sentiment": 80,
+    "issues": ["2년 전 경미한 논란 있었으나 해결"]
+  }},
+  "community": {{
+    "score": 90,
+    "comment_management": 90,
+    "subscriber_authenticity": 95,
+    "influencer_associations": 90,
+    "issues": []
+  }},
+  "brand_fit": {{
+    "score": 85,
+    "value_alignment": 85,
+    "competitor_history": 90,
+    "ad_quality": 80,
+    "issues": []
+  }},
+  "additional_checks": {{
+    "score": 90,
+    "transparency": 85,
+    "content_consistency": 95,
+    "platform_compliance": 95,
+    "issues": []
+  }},
+  "overall_score": 89,
   "risk_assessment": {{
     "level": "low",
     "red_flags": [],
@@ -386,7 +412,7 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
   }},
   "recommendation": {{
     "action": "proceed",
-    "reason": "브랜드 안전성 확인, 전문적이고 일관된 콘텐츠 제공"
+    "reason": "전반적으로 안전한 채널, 브랜드 이미지 손상 위험 낮음"
   }},
   "content_quality": {{
     "score": 85,
@@ -397,28 +423,23 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
     "views_prediction": {{
       "min": 60000,
       "avg": 80000,
-      "max": 120000,
-      "basis": "최근 10개 영상 조회수 분석"
+      "max": 120000
     }},
-    "ctr": {{
-      "value": 3.5,
-      "basis": "참여율 3.5%를 고려한 유튜브 PPL 평균치"
-    }},
-    "conversion_rate": {{
-      "value": 1.5,
-      "basis": "전문 콘텐츠 채널의 일반적 전환율"
-    }},
-    "estimated_conversions": {{
-      "min": 32,
-      "avg": 42,
-      "max": 63
-    }},
-    "summary": "높은 참여율과 전문성을 바탕으로 평균 42명의 구매 전환이 예상됩니다. 타겟 오디언스의 관심사와 채널 콘텐츠가 잘 부합하여 광고 효과가 우수할 것으로 판단됩니다."
+    "summary": "높은 참여율과 전문성을 바탕으로 광고 효과가 우수할 것으로 예상됩니다. 타겟 오디언스와의 부합도가 높아 긍정적인 브랜드 인지도 향상이 기대됩니다."
   }},
   "detailed_analysis": {{
     "target_audience": "25-40세 IT 관심층",
     "strengths": ["전문적인 콘텐츠", "높은 참여율", "일관된 주제"],
-    "weaknesses": []
+    "weaknesses": ["조회수 편차"]
+  }},
+  "brand_safety": {{
+    "score": 89,
+    "checklist": {{
+      "inappropriate_content": {{"status": "pass", "detail": "부적절한 콘텐츠 없음"}},
+      "controversial_topics": {{"status": "pass", "detail": "논란 주제 없음"}},
+      "profanity": {{"status": "warning", "detail": "경미한 욕설 1-2회"}},
+      "brand_alignment": {{"status": "pass", "detail": "브랜드 이미지와 부합"}}
+    }}
   }}
 }}
 """
@@ -467,6 +488,13 @@ if youtube_api_loaded and youtube_api_key:
         step=5000,
         help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원"
     )
+
+    # AI 분석 버튼 (URL 입력 직후)
+    ai_button_clicked = False
+    if youtube_url:
+        st.markdown("---")
+        ai_button_clicked = st.button("🤖 AI 분석 시작", type="primary", use_container_width=True, key="ai_analysis_btn_top")
+        st.markdown("---")
 
     # 처리 시작 (URL 입력시 유튜브 정보 표시)
     if youtube_url:
@@ -524,7 +552,7 @@ if youtube_api_loaded and youtube_api_key:
 
                         # === 결과 표시 ===
                         st.markdown("---")
-                        st.header("📊 분석 결과")
+                        st.header("📊 채널 개요")
 
                         # 채널 기본 정보
                         col_info1, col_info2 = st.columns([1, 2])
@@ -671,18 +699,14 @@ if youtube_api_loaded and youtube_api_key:
                             st.write("• AI 브랜드 안전성 검사: Gemini AI 활용")
                             st.caption("데이터 출처: PageOne Formula, Shopify, Descript, ADOPTER Media (2024-2025)")
 
-                        # AI 분석 버튼 (별도 섹션)
-                        st.markdown("---")
-                        st.markdown("---")  # 공간 확보
+                        # AI 분석 실행 (버튼이 클릭되었을 때)
+                        if GEMINI_AVAILABLE and gemini_api_loaded and ai_button_clicked:
+                            st.markdown("---")
+                            st.subheader("🤖 AI 브랜드세이프티 점검")
 
-                        if GEMINI_AVAILABLE and gemini_api_loaded:
-                            if st.button("🤖 AI 브랜드세이프티 점검 시작", type="primary", use_container_width=True, key="ai_analysis_btn"):
-                                st.markdown("---")
-                                st.subheader("🤖 AI 브랜드세이프티 점검")
-
-                                # 프로그레스 표시
-                                progress_placeholder = st.empty()
-                                progress_placeholder.markdown("""
+                            # 프로그레스 표시
+                            progress_placeholder = st.empty()
+                            progress_placeholder.markdown("""
                                 <div class="analyzing" style="
                                     background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
                                     padding: 20px;
@@ -700,30 +724,30 @@ if youtube_api_loaded and youtube_api_key:
                                 </div>
                                 """, unsafe_allow_html=True)
 
-                                # AI 분석 실행
-                                ai_result = analyze_with_gemini(
-                                    snippet['title'],
-                                    subscriber_count,
-                                    avg_views,
-                                    avg_engagement_rate,
-                                    recent_videos,
-                                    cost_data
-                                )
+                            # AI 분석 실행
+                            ai_result = analyze_with_gemini(
+                                snippet['title'],
+                                subscriber_count,
+                                avg_views,
+                                avg_engagement_rate,
+                                recent_videos,
+                                cost_data
+                            )
 
-                                # 프로그레스 제거
-                                progress_placeholder.empty()
+                            # 프로그레스 제거
+                            progress_placeholder.empty()
 
-                                if ai_result:
+                            if ai_result:
 
-                                    # ============================================
-                                    # 1단계: 콘텐츠 분석
-                                    # ============================================
-                                    st.markdown("---")
-                                    st.subheader("📊 콘텐츠 분석")
+                                # ============================================
+                                # 1단계: 채널 장단점
+                                # ============================================
+                                st.markdown("---")
+                                st.subheader("📊 채널 장단점")
 
-                                    # 콘텐츠 품질 점수 (큰 카드)
-                                    quality_score = ai_result['content_quality']['score']
-                                    st.markdown(f"""
+                                # 콘텐츠 품질 점수 (큰 카드)
+                                quality_score = ai_result['content_quality']['score']
+                                st.markdown(f"""
 <div style="background-color: #f5f5f5; padding: 25px; border-radius: 12px; text-align: center; border: 2px solid #1976d2; margin-bottom: 20px;">
     <h3 style="margin: 0 0 15px 0; color: #1976d2;">콘텐츠 품질 점수</h3>
     <div style="font-size: 3em; font-weight: bold; color: #1976d2; margin: 10px 0;">
@@ -733,33 +757,33 @@ if youtube_api_loaded and youtube_api_key:
         전문성: {ai_result['content_quality']['professionalism']} | 일관성: {ai_result['content_quality']['consistency']}
     </div>
 </div>
-                                    """, unsafe_allow_html=True)
+                                """, unsafe_allow_html=True)
 
-                                    # 타겟 오디언스 + 강점/약점
-                                    detail_col1, detail_col2, detail_col3 = st.columns(3)
+                                # 타겟 오디언스 + 강점/약점
+                                detail_col1, detail_col2, detail_col3 = st.columns(3)
 
-                                    with detail_col1:
-                                        st.markdown("**🎯 타겟 오디언스**")
-                                        st.info(ai_result['detailed_analysis']['target_audience'])
+                                with detail_col1:
+                                    st.markdown("**🎯 타겟 오디언스**")
+                                    st.info(ai_result['detailed_analysis']['target_audience'])
 
-                                    with detail_col2:
-                                        st.markdown("**✅ 강점**")
-                                        for strength in ai_result['detailed_analysis']['strengths']:
-                                            st.write(f"• {strength}")
+                                with detail_col2:
+                                    st.markdown("**✅ 강점**")
+                                    for strength in ai_result['detailed_analysis']['strengths']:
+                                        st.write(f"• {strength}")
 
-                                    with detail_col3:
-                                        st.markdown("**⚠️ 주의사항**")
-                                        if ai_result['detailed_analysis'].get('weaknesses'):
-                                            for weakness in ai_result['detailed_analysis']['weaknesses']:
-                                                st.write(f"• {weakness}")
-                                        else:
-                                            st.write("• 특이사항 없음")
+                                with detail_col3:
+                                    st.markdown("**⚠️ 주의사항**")
+                                    if ai_result['detailed_analysis'].get('weaknesses'):
+                                        for weakness in ai_result['detailed_analysis']['weaknesses']:
+                                            st.write(f"• {weakness}")
+                                    else:
+                                        st.write("• 특이사항 없음")
 
-                                    # ============================================
-                                    # 2단계: AI 광고 효과 해설
-                                    # ============================================
-                                    st.markdown("---")
-                                    st.markdown(f"""
+                                # ============================================
+                                # 2단계: AI 광고 효과 해설
+                                # ============================================
+                                st.markdown("---")
+                                st.markdown(f"""
 <div style="background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); padding: 20px; border-radius: 12px; border-left: 5px solid #1976d2; margin: 15px 0;">
     <div style="display: flex; align-items: start;">
         <div style="font-size: 2em; margin-right: 15px;">🤖</div>
@@ -773,53 +797,53 @@ if youtube_api_loaded and youtube_api_key:
         </div>
     </div>
 </div>
-                                    """, unsafe_allow_html=True)
+                                """, unsafe_allow_html=True)
 
-                                    # ============================================
-                                    # 3단계: 브랜드 안전성
-                                    # ============================================
-                                    st.markdown("---")
-                                    st.subheader("🛡️ 브랜드 안전성 검사")
-                                    
-                                    safety_score = ai_result['brand_safety']['score']
-                                    action = ai_result['recommendation']['action']
+                                # ============================================
+                                # 3단계: 브랜드 안전성
+                                # ============================================
+                                st.markdown("---")
+                                st.subheader("🛡️ 브랜드 안전성 검사")
+                                
+                                safety_score = ai_result['brand_safety']['score']
+                                action = ai_result['recommendation']['action']
 
-                                    # 점수에 따른 색상 및 상태 결정
-                                    if safety_score >= 80:
-                                        safety_color = "#4caf50"
-                                        safety_bg = "#e8f5e9"
-                                        safety_border = "#4caf50"
-                                        safety_status = "매우 안전"
-                                        safety_emoji = "🟢"
-                                        action_badge = "✅ 광고 집행 가능"
-                                        action_color = "#4caf50"
-                                    elif safety_score >= 70:
-                                        safety_color = "#8bc34a"
-                                        safety_bg = "#f1f8e9"
-                                        safety_border = "#8bc34a"
-                                        safety_status = "안전"
-                                        safety_emoji = "🟢"
-                                        action_badge = "✅ 광고 집행 가능"
-                                        action_color = "#8bc34a"
-                                    elif safety_score >= 50:
-                                        safety_color = "#ff9800"
-                                        safety_bg = "#fff3e0"
-                                        safety_border = "#ff9800"
-                                        safety_status = "주의 필요"
-                                        safety_emoji = "🟡"
-                                        action_badge = "⚠️ 신중한 검토 필요"
-                                        action_color = "#ff9800"
-                                    else:
-                                        safety_color = "#f44336"
-                                        safety_bg = "#ffebee"
-                                        safety_border = "#f44336"
-                                        safety_status = "위험"
-                                        safety_emoji = "🔴"
-                                        action_badge = "🚨 광고 집행 중단 권고"
-                                        action_color = "#f44336"
+                                # 점수에 따른 색상 및 상태 결정
+                                if safety_score >= 80:
+                                    safety_color = "#4caf50"
+                                    safety_bg = "#e8f5e9"
+                                    safety_border = "#4caf50"
+                                    safety_status = "매우 안전"
+                                    safety_emoji = "🟢"
+                                    action_badge = "✅ 광고 집행 가능"
+                                    action_color = "#4caf50"
+                                elif safety_score >= 70:
+                                    safety_color = "#8bc34a"
+                                    safety_bg = "#f1f8e9"
+                                    safety_border = "#8bc34a"
+                                    safety_status = "안전"
+                                    safety_emoji = "🟢"
+                                    action_badge = "✅ 광고 집행 가능"
+                                    action_color = "#8bc34a"
+                                elif safety_score >= 50:
+                                    safety_color = "#ff9800"
+                                    safety_bg = "#fff3e0"
+                                    safety_border = "#ff9800"
+                                    safety_status = "주의 필요"
+                                    safety_emoji = "🟡"
+                                    action_badge = "⚠️ 신중한 검토 필요"
+                                    action_color = "#ff9800"
+                                else:
+                                    safety_color = "#f44336"
+                                    safety_bg = "#ffebee"
+                                    safety_border = "#f44336"
+                                    safety_status = "위험"
+                                    safety_emoji = "🔴"
+                                    action_badge = "🚨 광고 집행 중단 권고"
+                                    action_color = "#f44336"
 
-                                    # 대형 브랜드 안전성 카드
-                                    st.markdown(f"""
+                                # 대형 브랜드 안전성 카드
+                                st.markdown(f"""
 <div style="background: linear-gradient(135deg, {safety_bg} 0%, #ffffff 100%); padding: 30px; border-radius: 15px; border: 3px solid {safety_border}; margin: 20px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
     <div style="display: flex; justify-content: space-between; align-items: center;">
         <div style="flex: 1; text-align: center;">
@@ -842,13 +866,82 @@ if youtube_api_loaded and youtube_api_key:
         </div>
     </div>
 </div>
-                                    """, unsafe_allow_html=True)
+                                """, unsafe_allow_html=True)
 
-                                    # 브랜드 안전성 체크리스트
-                                    st.markdown("#### 🔍 브랜드 안전성 검사 체크리스트")
+                                # 브랜드 안전성 체크리스트 (6개 카테고리)
+                                st.markdown("#### 🔍 브랜드 세이프티 체크리스트")
 
-                                    checklist = ai_result['brand_safety'].get('checklist', {})
+                                # 6개 카테고리 정의
+                                categories = [
+                                    ("content_safety", "📋 1. 콘텐츠 안전성", "선정성, 폭력성, 혐오/차별, 언어"),
+                                    ("legal_ethics", "⚖️ 2. 법적/윤리적 리스크", "저작권, 허위정보, 불법 행위, 광고 표시"),
+                                    ("reputation", "📊 3. 평판 리스크", "과거 논란, 정치/종교, 구독자 평판"),
+                                    ("community", "👥 4. 커뮤니티 건전성", "댓글 관리, 구독자 특성, 타 인플루언서"),
+                                    ("brand_fit", "🎯 5. 브랜드 적합성", "가치관 부합, 경쟁사, 광고 품질"),
+                                    ("additional_checks", "✅ 6. 추가 확인 사항", "채널 투명성, 콘텐츠 일관성, 플랫폼 정책")
+                                ]
 
+                                # 3열로 표시
+                                for i in range(0, len(categories), 3):
+                                    cols = st.columns(3)
+                                    for j in range(3):
+                                        if i + j < len(categories):
+                                            key, title, desc = categories[i + j]
+
+                                            with cols[j]:
+                                                if key in ai_result:
+                                                    category_data = ai_result[key]
+                                                    score = category_data.get('score', 0)
+                                                    issues = category_data.get('issues', [])
+
+                                                    # 점수에 따른 색상
+                                                    if score >= 80:
+                                                        color = "#4caf50"
+                                                        bg = "#e8f5e9"
+                                                        status_text = "양호"
+                                                    elif score >= 70:
+                                                        color = "#8bc34a"
+                                                        bg = "#f1f8e9"
+                                                        status_text = "보통"
+                                                    elif score >= 60:
+                                                        color = "#ff9800"
+                                                        bg = "#fff3e0"
+                                                        status_text = "주의"
+                                                    else:
+                                                        color = "#f44336"
+                                                        bg = "#ffebee"
+                                                        status_text = "위험"
+
+                                                    # 이슈 표시
+                                                    issues_html = ""
+                                                    if issues:
+                                                        issues_html = "<br>".join([f"• {issue}" for issue in issues])
+                                                    else:
+                                                        issues_html = "• 특이사항 없음"
+
+                                                    st.markdown(f"""
+                                                    <div style="background-color: {bg}; padding: 15px; border-radius: 10px; border-left: 4px solid {color}; margin-bottom: 15px; height: 100%;">
+                                                        <div style="font-weight: bold; margin-bottom: 8px; color: {color};">
+                                                            {title}
+                                                        </div>
+                                                        <div style="font-size: 2em; font-weight: bold; color: {color}; margin: 10px 0;">
+                                                            {score}<span style="font-size: 0.5em; opacity: 0.7;">/100</span>
+                                                        </div>
+                                                        <div style="font-size: 0.9em; color: #666; margin-bottom: 8px;">
+                                                            {desc}
+                                                        </div>
+                                                        <div style="font-size: 0.85em; color: #555;">
+                                                            {issues_html}
+                                                        </div>
+                                                    </div>
+                                                    """, unsafe_allow_html=True)
+
+                                # 기존 4개 체크리스트 (호환성 유지)
+                                if 'checklist' in ai_result.get('brand_safety', {}):
+                                    st.markdown("---")
+                                    st.markdown("##### 상세 체크리스트")
+
+                                    checklist = ai_result['brand_safety']['checklist']
                                     check_col1, check_col2 = st.columns(2)
 
                                     checklist_items = [
@@ -891,40 +984,40 @@ if youtube_api_loaded and youtube_api_key:
                                                 </div>
                                                 """, unsafe_allow_html=True)
 
-                                    # 리스크가 있는 경우 경고 표시
-                                    if ai_result['risk_assessment'].get('red_flags'):
-                                        st.error("🚩 **발견된 브랜드 리스크**")
-                                        for flag in ai_result['risk_assessment']['red_flags']:
-                                            st.markdown(f"""
-                                            <div style="background-color: #ffebee; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 5px solid #f44336;">
-                                                <strong>⚠️ {flag}</strong>
-                                            </div>
-                                            """, unsafe_allow_html=True)
+                                # 리스크가 있는 경우 경고 표시
+                                if ai_result['risk_assessment'].get('red_flags'):
+                                    st.error("🚩 **발견된 브랜드 리스크**")
+                                    for flag in ai_result['risk_assessment']['red_flags']:
+                                        st.markdown(f"""
+                                        <div style="background-color: #ffebee; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 5px solid #f44336;">
+                                            <strong>⚠️ {flag}</strong>
+                                        </div>
+                                        """, unsafe_allow_html=True)
 
-                                        # 중단 권고 시 여기서 멈춤
-                                        if action == "block":
-                                            st.info("💡 이 채널은 브랜드 이미지에 부정적 영향을 줄 수 있어 광고 집행을 권장하지 않습니다.")
-                                            st.stop()
+                                    # 중단 권고 시 여기서 멈춤
+                                    if action == "block":
+                                        st.info("💡 이 채널은 브랜드 이미지에 부정적 영향을 줄 수 있어 광고 집행을 권장하지 않습니다.")
+                                        st.stop()
 
-                                    # 주의 필요 시 경고
-                                    if action == "caution" and ai_result['risk_assessment'].get('concerns'):
-                                        with st.expander("⚠️ 주의사항 확인", expanded=True):
-                                            st.warning("이 채널은 일부 주의사항이 있습니다. 신중한 검토 후 광고 집행을 결정하세요.")
-                                            for concern in ai_result['risk_assessment']['concerns']:
-                                                st.write(f"• {concern}")
+                                # 주의 필요 시 경고
+                                if action == "caution" and ai_result['risk_assessment'].get('concerns'):
+                                    with st.expander("⚠️ 주의사항 확인", expanded=True):
+                                        st.warning("이 채널은 일부 주의사항이 있습니다. 신중한 검토 후 광고 집행을 결정하세요.")
+                                        for concern in ai_result['risk_assessment']['concerns']:
+                                            st.write(f"• {concern}")
 
-                                    with detail_col2:
-                                        st.markdown("**✅ 강점**")
-                                        for strength in ai_result['detailed_analysis']['strengths']:
-                                            st.write(f"• {strength}")
+                                with detail_col2:
+                                    st.markdown("**✅ 강점**")
+                                    for strength in ai_result['detailed_analysis']['strengths']:
+                                        st.write(f"• {strength}")
 
-                                    with detail_col3:
-                                        st.markdown("**⚠️ 주의사항**")
-                                        if ai_result['detailed_analysis'].get('weaknesses'):
-                                            for weakness in ai_result['detailed_analysis']['weaknesses']:
-                                                st.write(f"• {weakness}")
-                                        else:
-                                            st.write("• 특이사항 없음")
+                                with detail_col3:
+                                    st.markdown("**⚠️ 주의사항**")
+                                    if ai_result['detailed_analysis'].get('weaknesses'):
+                                        for weakness in ai_result['detailed_analysis']['weaknesses']:
+                                            st.write(f"• {weakness}")
+                                    else:
+                                        st.write("• 특이사항 없음")
 
                     else:
                         st.warning("⚠️ 최근 영상 정보를 가져올 수 없습니다.")
