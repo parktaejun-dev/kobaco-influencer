@@ -31,43 +31,62 @@ st.set_page_config(
 # --- 스타일 ---
 st.markdown("""
 <style>
+/* 전체 폰트 크기 증가 */
+html, body, [class*="css"] {
+    font-size: 16px;
+}
+
+p, div, span, li {
+    font-size: 1.05em;
+    line-height: 1.6;
+}
+
+/* Streamlit 기본 텍스트 크기 증가 */
+.stMarkdown {
+    font-size: 1.05em;
+}
+
 /* 강조 박스 */
 .info-box {
-    padding: 15px;
-    border-radius: 8px;
+    padding: 18px;
+    border-radius: 10px;
     margin: 15px 0;
     border-left: 5px solid #1976d2;
     background-color: rgba(25, 118, 210, 0.1);
+    font-size: 1.1em;
 }
 
 .warning-box {
-    padding: 15px;
-    border-radius: 8px;
+    padding: 18px;
+    border-radius: 10px;
     margin: 15px 0;
     border-left: 5px solid #ff9800;
     background-color: rgba(255, 152, 0, 0.1);
+    font-size: 1.1em;
 }
 
 .success-box {
-    padding: 15px;
-    border-radius: 8px;
+    padding: 18px;
+    border-radius: 10px;
     margin: 15px 0;
     border-left: 5px solid #4caf50;
     background-color: rgba(76, 175, 80, 0.1);
+    font-size: 1.1em;
 }
 
 /* AI 분석 박스 */
 .ai-box {
-    padding: 20px;
+    padding: 22px;
     border-radius: 12px;
     margin: 15px 0;
     border: 2px solid #9c27b0;
     background-color: rgba(156, 39, 176, 0.05);
+    font-size: 1.1em;
 }
 
 /* 비용 표시 카드 */
 .cost-card {
-    padding: 20px;
+    padding: 22px;
     border-radius: 12px;
     text-align: center;
     margin: 10px 0;
@@ -76,16 +95,25 @@ st.markdown("""
 }
 
 .cost-value {
-    font-size: 2em;
+    font-size: 2.2em;
     font-weight: bold;
     color: #1976d2;
     margin: 10px 0;
 }
 
 .cost-label {
-    font-size: 1.1em;
+    font-size: 1.15em;
     opacity: 0.8;
     margin: 5px 0;
+}
+
+/* 메트릭 크기 증가 */
+[data-testid="stMetricValue"] {
+    font-size: 1.8em !important;
+}
+
+[data-testid="stMetricLabel"] {
+    font-size: 1.1em !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -309,10 +337,30 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
 - **consistency**: "excellent" / "good" / "inconsistent"
 
 ### 5. 예상 광고 효과 (Ad Effect)
-- 예상 최소/평균/최대 조회수
-- 예상 클릭률 (CTR, %)
-- 예상 전환율 (%)
-- 예상 ROI (%)
+**조회수 예측:**
+- 최소: 최근 10개 영상 중 하위 20% 평균
+- 평균: 최근 10개 영상 전체 평균
+- 최대: 최근 10개 영상 중 상위 20% 평균
+- basis: 예측 근거 설명
+
+**클릭률 (CTR) 예측:**
+- 유튜브 인플루언서 PPL 평균 CTR: 3-5%
+- 채널의 참여율을 고려하여 예측
+- basis: 예측 근거 설명
+
+**전환율 예측:**
+- 인플루언서 마케팅 평균 전환율: 1-2%
+- 채널 타겟과 콘텐츠 품질을 고려
+- basis: 예측 근거 설명
+
+**예상 전환 고객 수:**
+- 계산식: 조회수 × CTR × 전환율
+- 최소/평균/최대 각각 계산
+
+**AI 해설:**
+- summary: 광고 효과에 대한 전반적인 요약 및 해설 (2-3문장)
+
+주의: ROI는 제품 단가를 알 수 없으므로 계산하지 마세요.
 
 ### 6. 상세 분석 (Detailed Analysis)
 - **target_audience**: 타겟 오디언스 (연령대, 관심사)
@@ -322,7 +370,13 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
 반드시 다음 JSON 형식으로만 답변하세요:
 {{
   "brand_safety": {{
-    "score": 85
+    "score": 85,
+    "checklist": {{
+      "inappropriate_content": {{"status": "pass", "detail": "부적절한 콘텐츠 없음"}},
+      "controversial_topics": {{"status": "pass", "detail": "논란 주제 없음"}},
+      "profanity": {{"status": "pass", "detail": "비속어 사용 없음"}},
+      "brand_alignment": {{"status": "pass", "detail": "브랜드 이미지와 부합"}}
+    }}
   }},
   "risk_assessment": {{
     "level": "low",
@@ -339,12 +393,26 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
     "consistency": "excellent"
   }},
   "ad_effect": {{
-    "views_min": 60000,
-    "views_avg": 80000,
-    "views_max": 120000,
-    "ctr": 3.5,
-    "conversion_rate": 1.5,
-    "roi": 250
+    "views_prediction": {{
+      "min": 60000,
+      "avg": 80000,
+      "max": 120000,
+      "basis": "최근 10개 영상 조회수 분석"
+    }},
+    "ctr": {{
+      "value": 3.5,
+      "basis": "참여율 3.5%를 고려한 유튜브 PPL 평균치"
+    }},
+    "conversion_rate": {{
+      "value": 1.5,
+      "basis": "전문 콘텐츠 채널의 일반적 전환율"
+    }},
+    "estimated_conversions": {{
+      "min": 32,
+      "avg": 42,
+      "max": 63
+    }},
+    "summary": "높은 참여율과 전문성을 바탕으로 평균 42명의 구매 전환이 예상됩니다. 타겟 오디언스의 관심사와 채널 콘텐츠가 잘 부합하여 광고 효과가 우수할 것으로 판단됩니다."
   }},
   "detailed_analysis": {{
     "target_audience": "25-40세 IT 관심층",
@@ -644,6 +712,59 @@ if youtube_api_loaded and youtube_api_key:
                                         </div>
                                         """, unsafe_allow_html=True)
 
+                                        # 브랜드 안전성 체크리스트
+                                        st.markdown("#### 🔍 브랜드 안전성 검사 체크리스트")
+
+                                        checklist = ai_result['brand_safety'].get('checklist', {})
+
+                                        check_col1, check_col2 = st.columns(2)
+
+                                        checklist_items = [
+                                            ("inappropriate_content", "부적절한 콘텐츠"),
+                                            ("controversial_topics", "논란성 주제"),
+                                            ("profanity", "비속어/욕설"),
+                                            ("brand_alignment", "브랜드 부합도")
+                                        ]
+
+                                        for idx, (key, label) in enumerate(checklist_items):
+                                            col = check_col1 if idx % 2 == 0 else check_col2
+
+                                            with col:
+                                                if key in checklist:
+                                                    item = checklist[key]
+                                                    status = item.get('status', 'unknown')
+                                                    detail = item.get('detail', '정보 없음')
+
+                                                    if status == "pass":
+                                                        icon = "✅"
+                                                        bg_color = "#e8f5e9"
+                                                        border_color = "#4caf50"
+                                                    elif status == "warning":
+                                                        icon = "⚠️"
+                                                        bg_color = "#fff3e0"
+                                                        border_color = "#ff9800"
+                                                    else:
+                                                        icon = "❌"
+                                                        bg_color = "#ffebee"
+                                                        border_color = "#f44336"
+
+                                                    st.markdown(f"""
+                                                    <div style="
+                                                        background-color: {bg_color};
+                                                        padding: 12px;
+                                                        border-radius: 8px;
+                                                        border-left: 4px solid {border_color};
+                                                        margin-bottom: 10px;
+                                                    ">
+                                                        <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">
+                                                            {icon} {label}
+                                                        </div>
+                                                        <div style="font-size: 0.95em; color: #666;">
+                                                            {detail}
+                                                        </div>
+                                                    </div>
+                                                    """, unsafe_allow_html=True)
+
                                         # 리스크가 있는 경우 경고 표시
                                         if ai_result['risk_assessment'].get('red_flags'):
                                             st.error("🚩 **발견된 브랜드 리스크**")
@@ -706,43 +827,114 @@ if youtube_api_loaded and youtube_api_key:
                                         with col_effect:
                                             st.markdown("### 📈 예상 광고 효과")
 
-                                            effect_col1, effect_col2, effect_col3 = st.columns(3)
+                                            effect_col1, effect_col2 = st.columns([2, 1])
 
                                             with effect_col1:
+                                                st.markdown("**📊 도달 및 반응**")
+
+                                                # 조회수 범위
+                                                views_min = ai_result['ad_effect']['views_prediction']['min']
+                                                views_avg = ai_result['ad_effect']['views_prediction']['avg']
+                                                views_max = ai_result['ad_effect']['views_prediction']['max']
+
                                                 st.metric(
-                                                    "예상 조회수 (최소)",
-                                                    format_number(ai_result['ad_effect']['views_min']),
-                                                    help="최소 예상 조회수"
+                                                    "예상 조회수 범위",
+                                                    f"{format_number(views_min)} ~ {format_number(views_max)}",
+                                                    help=ai_result['ad_effect']['views_prediction']['basis']
                                                 )
+                                                st.caption(f"평균: {format_number(views_avg)}회")
+
+                                                # CTR
+                                                ctr = ai_result['ad_effect']['ctr']['value']
                                                 st.metric(
-                                                    "예상 조회수 (평균)",
-                                                    format_number(ai_result['ad_effect']['views_avg']),
-                                                    help="평균 예상 조회수"
+                                                    "예상 클릭률 (CTR)",
+                                                    f"{ctr}%",
+                                                    help=ai_result['ad_effect']['ctr']['basis']
                                                 )
+
+                                                # 전환율
+                                                conv_rate = ai_result['ad_effect']['conversion_rate']['value']
                                                 st.metric(
-                                                    "예상 조회수 (최대)",
-                                                    format_number(ai_result['ad_effect']['views_max']),
-                                                    help="최대 예상 조회수"
+                                                    "예상 전환율",
+                                                    f"{conv_rate}%",
+                                                    help=ai_result['ad_effect']['conversion_rate']['basis']
                                                 )
 
                                             with effect_col2:
-                                                st.metric(
-                                                    "예상 클릭률 (CTR)",
-                                                    f"{ai_result['ad_effect']['ctr']}%",
-                                                    help="예상 클릭률"
-                                                )
+                                                st.markdown("**👥 예상 전환 고객**")
 
-                                            with effect_col3:
-                                                st.metric(
-                                                    "예상 전환율",
-                                                    f"{ai_result['ad_effect']['conversion_rate']}%",
-                                                    help="예상 구매 전환율"
-                                                )
-                                                st.metric(
-                                                    "예상 ROI",
-                                                    f"{ai_result['ad_effect']['roi']}%",
-                                                    help="투자 대비 수익률"
-                                                )
+                                                conv_min = ai_result['ad_effect']['estimated_conversions']['min']
+                                                conv_avg = ai_result['ad_effect']['estimated_conversions']['avg']
+                                                conv_max = ai_result['ad_effect']['estimated_conversions']['max']
+
+                                                # 큰 숫자로 강조
+                                                st.markdown(f"""
+                                                <div style="text-align: center; padding: 20px;
+                                                            background-color: #e3f2fd; border-radius: 10px;">
+                                                    <div style="font-size: 1.2em; color: #666; margin-bottom: 10px;">
+                                                        예상 구매 고객 수
+                                                    </div>
+                                                    <div style="font-size: 3em; font-weight: bold; color: #1976d2;">
+                                                        {conv_avg}명
+                                                    </div>
+                                                    <div style="font-size: 1em; color: #666; margin-top: 10px;">
+                                                        최소 {conv_min}명 ~ 최대 {conv_max}명
+                                                    </div>
+                                                </div>
+                                                """, unsafe_allow_html=True)
+
+                                        # AI 해설 박스 추가
+                                        st.markdown("---")
+                                        st.markdown(f"""
+                                        <div style="
+                                            background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
+                                            padding: 20px;
+                                            border-radius: 12px;
+                                            border-left: 5px solid #1976d2;
+                                            margin: 15px 0;
+                                        ">
+                                            <div style="display: flex; align-items: start;">
+                                                <div style="font-size: 2em; margin-right: 15px;">🤖</div>
+                                                <div>
+                                                    <div style="font-size: 1.1em; font-weight: bold; color: #1976d2; margin-bottom: 8px;">
+                                                        AI 광고 효과 분석
+                                                    </div>
+                                                    <div style="font-size: 1em; line-height: 1.6; color: #333;">
+                                                        {ai_result['ad_effect']['summary']}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        """, unsafe_allow_html=True)
+
+                                        # 산식 설명
+                                        with st.expander("📐 예측 산식 상세 설명"):
+                                            st.markdown(f"""
+                                            ### 조회수 예측
+                                            - **최소값**: 최근 10개 영상 중 하위 20% 평균
+                                            - **평균값**: 최근 10개 영상 전체 평균
+                                            - **최대값**: 최근 10개 영상 중 상위 20% 평균
+
+                                            ### CTR (클릭률) 예측
+                                            - **업계 기준**: 유튜브 인플루언서 PPL 평균 3-5%
+                                            - **조정 요소**: 채널 참여율, 콘텐츠 품질
+                                            - **근거**: {ai_result['ad_effect']['ctr']['basis']}
+
+                                            ### 전환율 예측
+                                            - **업계 기준**: 인플루언서 마케팅 평균 1-2%
+                                            - **조정 요소**: 타겟 오디언스 정확도, 채널 신뢰도
+                                            - **근거**: {ai_result['ad_effect']['conversion_rate']['basis']}
+
+                                            ### 전환 고객 수 계산
+                                            ```
+                                            예상 구매 고객 = 조회수 × CTR × 전환율
+                                            ```
+
+                                            예시 (평균값 기준):
+                                            - 조회수 {format_number(views_avg)}회
+                                            - CTR {ctr}% → 클릭 {format_number(int(views_avg * ctr / 100))}명
+                                            - 전환율 {conv_rate}% → 구매 {conv_avg}명
+                                            """)
 
                                         # ============================================
                                         # 3단계: 상세 분석
