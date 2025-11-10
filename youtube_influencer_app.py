@@ -341,7 +341,7 @@ if youtube_api_loaded and youtube_api_key:
                         ]
                         avg_engagement_rate = sum(engagement_rates) / len(engagement_rates)
 
-                        # 비용 계산
+                        # 비용 계산 (채널 건강도 정보를 얻기 위한 초기 계산)
                         cost_data = cost_calculator.estimate_ad_cost_korea(
                             subscriber_count=subscriber_count,
                             avg_views=avg_views,
@@ -351,10 +351,6 @@ if youtube_api_loaded and youtube_api_key:
                             recent_90day_avg_views=None,
                             cpm_krw=cpm_value
                         )
-
-                        final_cost = cost_data['final_cost']
-                        min_cost = cost_data['min_cost']
-                        max_cost = cost_data['max_cost']
 
                         # === 결과 표시 ===
                         st.markdown("---")
@@ -510,7 +506,36 @@ if youtube_api_loaded and youtube_api_key:
                                 - 공정한 가격 책정을 위한 시스템입니다
                                 """)
 
-                        # 광고 비용
+                        # CPM 단가 조정
+                        st.markdown("---")
+                        st.markdown("### 💰 CPM 단가 설정")
+                        st.caption("💡 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
+                        cpm_value = st.slider(
+                            "1,000뷰당 비용 (원)",
+                            min_value=10000,
+                            max_value=100000,
+                            value=30000,
+                            step=5000,
+                            help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원",
+                            key='cpm_slider'
+                        )
+
+                        # CPM 값으로 비용 재계산
+                        cost_data = cost_calculator.estimate_ad_cost_korea(
+                            subscriber_count=subscriber_count,
+                            avg_views=avg_views,
+                            engagement_rate=avg_engagement_rate,
+                            avg_likes=avg_likes,
+                            avg_comments=avg_comments,
+                            recent_90day_avg_views=None,
+                            cpm_krw=cpm_value
+                        )
+
+                        final_cost = cost_data['final_cost']
+                        min_cost = cost_data['min_cost']
+                        max_cost = cost_data['max_cost']
+
+                        # 광고 비용 표시
                         st.markdown("---")
                         st.subheader("💰 1회 광고 적정 비용")
 
@@ -541,20 +566,6 @@ if youtube_api_loaded and youtube_api_key:
                             """, unsafe_allow_html=True)
 
                         st.caption(f"💡 한국 시장 기준 | 브랜디드 PPL (30초~1분 노출) | CPM: {format_number(cpm_value)}원")
-
-                        # CPM 단가 조정
-                        st.markdown("---")
-                        st.markdown("### 💰 CPM 단가 설정")
-                        st.caption("💡 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
-                        cpm_value = st.slider(
-                            "1,000뷰당 비용 (원)",
-                            min_value=10000,
-                            max_value=100000,
-                            value=30000,
-                            step=5000,
-                            help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원",
-                            key='cpm_slider'
-                        )
 
                         # 최근 영상 분석
                         st.markdown("---")
