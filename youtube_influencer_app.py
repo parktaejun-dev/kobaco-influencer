@@ -348,30 +348,17 @@ if youtube_api_loaded and youtube_api_key:
         key="youtube_url_input"
     )
 
-    # 설정 영역 (컬럼으로 나누기)
-    col_settings1, col_settings2 = st.columns(2)
-
-    with col_settings1:
-        # CPM 단가 조정
-        st.write("**CPM 단가 설정**")
-        cpm_value = st.slider(
-            "1,000뷰당 비용 (원)",
-            min_value=10000,
-            max_value=100000,
-            value=30000,
-            step=5000,
-            help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다."
-        )
-
-    with col_settings2:
-        # 콘텐츠 포맷 선택 (라디오 버튼)
-        st.write("**광고 콘텐츠 유형**")
-        content_format = st.radio(
-            "광고 유형 선택",
-            ["기본", "단순 노출형", "제품 리뷰", "비교/추천", "사용후기", "장기 캠페인"],
-            index=0,
-            help="• 기본: 일반 광고 (1.0x)\n• 단순 노출형: 브이로그 중 제품 삽입 (1.0x)\n• 제품 리뷰: 단독 리뷰 영상 (1.2x)\n• 비교/추천: 여러 제품 비교 (1.35x)\n• 사용후기: 장기 사용 리뷰 (1.35x)\n• 장기 캠페인: 3회 이상 연재 (1.5x)"
-        )
+    # CPM 단가 조정
+    st.write("**CPM 단가 설정**")
+    st.caption("💡 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
+    cpm_value = st.slider(
+        "1,000뷰당 비용 (원)",
+        min_value=10000,
+        max_value=100000,
+        value=30000,
+        step=5000,
+        help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원"
+    )
 
     # 처리 시작
     if youtube_url:
@@ -420,7 +407,6 @@ if youtube_api_loaded and youtube_api_key:
                             avg_likes=avg_likes,
                             avg_comments=avg_comments,
                             recent_90day_avg_views=None,
-                            content_format=content_format,
                             cpm_krw=cpm_value
                         )
 
@@ -513,7 +499,7 @@ if youtube_api_loaded and youtube_api_key:
                             </div>
                             """, unsafe_allow_html=True)
 
-                        st.caption(f"💡 한국 시장 기준 | CPM: {format_number(cpm_value)}원 | 콘텐츠 유형: {content_format}")
+                        st.caption(f"💡 한국 시장 기준 | 브랜디드 PPL (30초~1분 노출) | CPM: {format_number(cpm_value)}원")
 
                         # AI 분석
                         if GEMINI_AVAILABLE and gemini_api_loaded:
@@ -624,14 +610,15 @@ if youtube_api_loaded and youtube_api_key:
                         # 참고사항
                         with st.expander("📝 참고사항"):
                             st.write("**비용 산정 기준**")
-                            st.write("• 1회 전용 광고 영상(Dedicated Video) 기준")
+                            st.write("• 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 단순 노출)")
                             st.write("• 단순 언급(Mention)은 30-50% 저렴")
                             st.write("• 콘텐츠 재사용권 포함 시 20-50% 추가")
                             st.write("• 독점 계약 시 30-100% 추가 가능")
                             st.write("")
-                            st.write("**v4.0 개선사항**")
+                            st.write("**v4.1 개선사항**")
+                            st.write("• CPM 기준 30,000원으로 조정 (시장 반영)")
+                            st.write("• 최근 90일 CPM 계산 (죽은 채널 방지)")
                             st.write("• 참여 질 보정: 댓글/좋아요 비율 분석")
-                            st.write("• 콘텐츠 포맷 프리미엄: 광고 유형별 차등 적용")
                             st.write("• AI 광고 효과 예측: Gemini AI 활용")
                             st.caption("데이터 출처: PageOne Formula, Shopify, Descript, ADOPTER Media (2024-2025)")
 
@@ -643,4 +630,4 @@ else:
 
 # 푸터
 st.markdown("---")
-st.caption("Made with ❤️ | 유튜브 인플루언서 검색 엔진 v4.0 (2025) | Powered by Gemini AI")
+st.caption("Made with ❤️ | 유튜브 인플루언서 검색 엔진 v4.1 (2025) | Powered by Gemini AI")
