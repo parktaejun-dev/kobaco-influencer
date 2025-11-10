@@ -502,6 +502,20 @@ if youtube_api_loaded and youtube_api_key:
 
                         st.caption(f"💡 한국 시장 기준 | 브랜디드 PPL (30초~1분 노출) | CPM: {format_number(cpm_value)}원")
 
+                        # CPM 단가 조정
+                        st.markdown("---")
+                        st.markdown("### 💰 CPM 단가 설정")
+                        st.caption("💡 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
+                        cpm_value = st.slider(
+                            "1,000뷰당 비용 (원)",
+                            min_value=10000,
+                            max_value=100000,
+                            value=30000,
+                            step=5000,
+                            help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원",
+                            key='cpm_slider'
+                        )
+
                         # 최근 영상 분석
                         st.markdown("---")
                         st.subheader("🎥 최근 영상 분석 (최근 10개)")
@@ -573,20 +587,6 @@ if youtube_api_loaded and youtube_api_key:
                             st.write("• 최근 90일 CPM 계산 (죽은 채널 방지)")
                             st.write("• 참여 질 보정: 댓글/좋아요 비율 분석")
                             st.caption("데이터 출처: PageOne Formula, Shopify, Descript, ADOPTER Media (2024-2025)")
-
-                        # CPM 단가 조정
-                        st.markdown("---")
-                        st.write("**CPM 단가 설정**")
-                        st.caption("💡 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
-                        cpm_value = st.slider(
-                            "1,000뷰당 비용 (원)",
-                            min_value=10000,
-                            max_value=100000,
-                            value=30000,
-                            step=5000,
-                            help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원",
-                            key='cpm_slider'
-                        )
 
                         # AI 분석 버튼
                         st.markdown("---")
