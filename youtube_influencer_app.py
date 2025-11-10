@@ -714,15 +714,79 @@ if youtube_api_loaded and youtube_api_key:
                                 progress_placeholder.empty()
 
                                 if ai_result:
+
                                     # ============================================
-                                    # 1단계: 브랜드 안전성 (대형 카드)
+                                    # 1단계: 콘텐츠 분석
                                     # ============================================
+                                    st.markdown("---")
+                                    st.subheader("📊 콘텐츠 분석")
+
+                                    # 콘텐츠 품질 점수 (큰 카드)
+                                    quality_score = ai_result['content_quality']['score']
+                                    st.markdown(f"""
+<div style="background-color: #f5f5f5; padding: 25px; border-radius: 12px; text-align: center; border: 2px solid #1976d2; margin-bottom: 20px;">
+    <h3 style="margin: 0 0 15px 0; color: #1976d2;">콘텐츠 품질 점수</h3>
+    <div style="font-size: 3em; font-weight: bold; color: #1976d2; margin: 10px 0;">
+        {quality_score}<span style="font-size: 0.4em; opacity: 0.7;">/100</span>
+    </div>
+    <div style="font-size: 1.1em; color: #666;">
+        전문성: {ai_result['content_quality']['professionalism']} | 일관성: {ai_result['content_quality']['consistency']}
+    </div>
+</div>
+                                    """, unsafe_allow_html=True)
+
+                                    # 타겟 오디언스 + 강점/약점
+                                    detail_col1, detail_col2, detail_col3 = st.columns(3)
+
+                                    with detail_col1:
+                                        st.markdown("**🎯 타겟 오디언스**")
+                                        st.info(ai_result['detailed_analysis']['target_audience'])
+
+                                    with detail_col2:
+                                        st.markdown("**✅ 강점**")
+                                        for strength in ai_result['detailed_analysis']['strengths']:
+                                            st.write(f"• {strength}")
+
+                                    with detail_col3:
+                                        st.markdown("**⚠️ 주의사항**")
+                                        if ai_result['detailed_analysis'].get('weaknesses'):
+                                            for weakness in ai_result['detailed_analysis']['weaknesses']:
+                                                st.write(f"• {weakness}")
+                                        else:
+                                            st.write("• 특이사항 없음")
+
+                                    # ============================================
+                                    # 2단계: AI 광고 효과 해설
+                                    # ============================================
+                                    st.markdown("---")
+                                    st.markdown(f"""
+<div style="background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); padding: 20px; border-radius: 12px; border-left: 5px solid #1976d2; margin: 15px 0;">
+    <div style="display: flex; align-items: start;">
+        <div style="font-size: 2em; margin-right: 15px;">🤖</div>
+        <div>
+            <div style="font-size: 1.1em; font-weight: bold; color: #1976d2; margin-bottom: 8px;">
+                AI 광고 효과 분석
+            </div>
+            <div style="font-size: 1em; line-height: 1.6; color: #333;">
+                {ai_result['ad_effect']['summary']}
+            </div>
+        </div>
+    </div>
+</div>
+                                    """, unsafe_allow_html=True)
+
+                                    # ============================================
+                                    # 3단계: 브랜드 안전성
+                                    # ============================================
+                                    st.markdown("---")
+                                    st.subheader("🛡️ 브랜드 안전성 검사")
+                                    
                                     safety_score = ai_result['brand_safety']['score']
                                     action = ai_result['recommendation']['action']
 
                                     # 점수에 따른 색상 및 상태 결정
                                     if safety_score >= 80:
-                                        safety_color = "#4caf50"  # 녹색
+                                        safety_color = "#4caf50"
                                         safety_bg = "#e8f5e9"
                                         safety_border = "#4caf50"
                                         safety_status = "매우 안전"
@@ -817,13 +881,7 @@ if youtube_api_loaded and youtube_api_key:
                                                     border_color = "#f44336"
 
                                                 st.markdown(f"""
-                                                <div style="
-                                                    background-color: {bg_color};
-                                                    padding: 12px;
-                                                    border-radius: 8px;
-                                                    border-left: 4px solid {border_color};
-                                                    margin-bottom: 10px;
-                                                ">
+                                                <div style="background-color: {bg_color}; padding: 12px; border-radius: 8px; border-left: 4px solid {border_color}; margin-bottom: 10px;">
                                                     <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">
                                                         {icon} {label}
                                                     </div>
@@ -838,13 +896,7 @@ if youtube_api_loaded and youtube_api_key:
                                         st.error("🚩 **발견된 브랜드 리스크**")
                                         for flag in ai_result['risk_assessment']['red_flags']:
                                             st.markdown(f"""
-                                            <div style="
-                                                background-color: #ffebee;
-                                                padding: 15px;
-                                                border-radius: 8px;
-                                                margin: 10px 0;
-                                                border-left: 5px solid #f44336;
-                                            ">
+                                            <div style="background-color: #ffebee; padding: 15px; border-radius: 8px; margin: 10px 0; border-left: 5px solid #f44336;">
                                                 <strong>⚠️ {flag}</strong>
                                             </div>
                                             """, unsafe_allow_html=True)
@@ -860,161 +912,6 @@ if youtube_api_loaded and youtube_api_key:
                                             st.warning("이 채널은 일부 주의사항이 있습니다. 신중한 검토 후 광고 집행을 결정하세요.")
                                             for concern in ai_result['risk_assessment']['concerns']:
                                                 st.write(f"• {concern}")
-
-                                    # ============================================
-                                    # 1단계: 콘텐츠 분석
-                                    # ============================================
-                                    st.markdown("---")
-
-                                    col_quality, col_effect = st.columns([1, 2])
-
-                                    # 콘텐츠 품질 점수
-                                    with col_quality:
-                                        quality_score = ai_result['content_quality']['score']
-
-                                        st.markdown(f"""
-                                        <div style="
-                                            background-color: #f5f5f5;
-                                            padding: 25px;
-                                            border-radius: 12px;
-                                            text-align: center;
-                                            border: 2px solid #1976d2;
-                                        ">
-                                            <h3 style="margin: 0 0 15px 0; color: #1976d2;">📊 콘텐츠 품질</h3>
-                                            <div style="font-size: 3em; font-weight: bold; color: #1976d2; margin: 10px 0;">
-                                                {quality_score}<span style="font-size: 0.4em; opacity: 0.7;">/100</span>
-                                            </div>
-                                            <div style="font-size: 1.1em; color: #666;">
-                                                전문성: {ai_result['content_quality']['professionalism']}<br>
-                                                일관성: {ai_result['content_quality']['consistency']}
-                                            </div>
-                                        </div>
-                                        """, unsafe_allow_html=True)
-
-                                    # 광고 효과 예측
-                                    with col_effect:
-                                        st.markdown("### 📈 예상 광고 효과")
-
-                                        effect_col1, effect_col2 = st.columns([2, 1])
-
-                                        with effect_col1:
-                                            st.markdown("**📊 도달 및 반응**")
-
-                                            # 조회수 범위
-                                            views_min = ai_result['ad_effect']['views_prediction']['min']
-                                            views_avg = ai_result['ad_effect']['views_prediction']['avg']
-                                            views_max = ai_result['ad_effect']['views_prediction']['max']
-
-                                            st.metric(
-                                                "예상 조회수 범위",
-                                                f"{format_number(views_min)} ~ {format_number(views_max)}",
-                                                help=ai_result['ad_effect']['views_prediction']['basis']
-                                            )
-                                            st.caption(f"평균: {format_number(views_avg)}회")
-
-                                            # CTR
-                                            ctr = ai_result['ad_effect']['ctr']['value']
-                                            st.metric(
-                                                "예상 클릭률 (CTR)",
-                                                f"{ctr}%",
-                                                help=ai_result['ad_effect']['ctr']['basis']
-                                            )
-
-                                            # 전환율
-                                            conv_rate = ai_result['ad_effect']['conversion_rate']['value']
-                                            st.metric(
-                                                "예상 전환율",
-                                                f"{conv_rate}%",
-                                                help=ai_result['ad_effect']['conversion_rate']['basis']
-                                            )
-
-                                        with effect_col2:
-                                            st.markdown("**👥 예상 전환 고객**")
-
-                                            conv_min = ai_result['ad_effect']['estimated_conversions']['min']
-                                            conv_avg = ai_result['ad_effect']['estimated_conversions']['avg']
-                                            conv_max = ai_result['ad_effect']['estimated_conversions']['max']
-
-                                            # 큰 숫자로 강조
-                                            st.markdown(f"""
-                                            <div style="text-align: center; padding: 20px;
-                                                        background-color: #e3f2fd; border-radius: 10px;">
-                                                <div style="font-size: 1.2em; color: #666; margin-bottom: 10px;">
-                                                    예상 구매 고객 수
-                                                </div>
-                                                <div style="font-size: 3em; font-weight: bold; color: #1976d2;">
-                                                    {conv_avg}명
-                                                </div>
-                                                <div style="font-size: 1em; color: #666; margin-top: 10px;">
-                                                    최소 {conv_min}명 ~ 최대 {conv_max}명
-                                                </div>
-                                            </div>
-                                            """, unsafe_allow_html=True)
-
-                                    # AI 해설 박스 추가
-                                    st.markdown("---")
-                                    st.markdown(f"""
-                                    <div style="
-                                        background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
-                                        padding: 20px;
-                                        border-radius: 12px;
-                                        border-left: 5px solid #1976d2;
-                                        margin: 15px 0;
-                                    ">
-                                        <div style="display: flex; align-items: start;">
-                                            <div style="font-size: 2em; margin-right: 15px;">🤖</div>
-                                            <div>
-                                                <div style="font-size: 1.1em; font-weight: bold; color: #1976d2; margin-bottom: 8px;">
-                                                    AI 광고 효과 분석
-                                                </div>
-                                                <div style="font-size: 1em; line-height: 1.6; color: #333;">
-                                                    {ai_result['ad_effect']['summary']}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    """, unsafe_allow_html=True)
-
-                                    # 산식 설명
-                                    with st.expander("📐 예측 산식 상세 설명"):
-                                        st.markdown(f"""
-                                        ### 조회수 예측
-                                        - **최소값**: 최근 10개 영상 중 하위 20% 평균
-                                        - **평균값**: 최근 10개 영상 전체 평균
-                                        - **최대값**: 최근 10개 영상 중 상위 20% 평균
-
-                                        ### CTR (클릭률) 예측
-                                        - **업계 기준**: 유튜브 인플루언서 PPL 평균 3-5%
-                                        - **조정 요소**: 채널 참여율, 콘텐츠 품질
-                                        - **근거**: {ai_result['ad_effect']['ctr']['basis']}
-
-                                        ### 전환율 예측
-                                        - **업계 기준**: 인플루언서 마케팅 평균 1-2%
-                                        - **조정 요소**: 타겟 오디언스 정확도, 채널 신뢰도
-                                        - **근거**: {ai_result['ad_effect']['conversion_rate']['basis']}
-
-                                        ### 전환 고객 수 계산
-                                        ```
-                                        예상 구매 고객 = 조회수 × CTR × 전환율
-                                        ```
-
-                                        예시 (평균값 기준):
-                                        - 조회수 {format_number(views_avg)}회
-                                        - CTR {ctr}% → 클릭 {format_number(int(views_avg * ctr / 100))}명
-                                        - 전환율 {conv_rate}% → 구매 {conv_avg}명
-                                        """)
-
-                                    # ============================================
-                                    # 3단계: 상세 분석
-                                    # ============================================
-                                    st.markdown("---")
-                                    st.subheader("📋 상세 분석")
-
-                                    detail_col1, detail_col2, detail_col3 = st.columns(3)
-
-                                    with detail_col1:
-                                        st.markdown("**🎯 타겟 오디언스**")
-                                        st.info(ai_result['detailed_analysis']['target_audience'])
 
                                     with detail_col2:
                                         st.markdown("**✅ 강점**")
