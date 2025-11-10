@@ -315,7 +315,7 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
 }}
 """
 
-        model = genai.GenerativeModel('gemini-1.5-flash')
+        model = genai.GenerativeModel('gemini-1.5-flash-latest')
         response = model.generate_content(prompt)
 
         # JSON 파싱
