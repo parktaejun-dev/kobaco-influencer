@@ -273,6 +273,7 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
 
         prompt = f"""
 다음 유튜브 채널에 대한 인플루언서 마케팅 분석을 수행해주세요.
+**브랜드 안전성을 최우선으로 평가**하고, 광고 집행 가능 여부를 판단해주세요.
 
 ## 채널 정보
 - 채널명: {channel_name}
@@ -286,20 +287,57 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
 
 다음 항목을 분석하여 JSON 형식으로 답변해주세요:
 
-1. **콘텐츠 품질 점수** (0-100): 제목의 전문성, 일관성, 브랜드 협업 적합성
-2. **예상 광고 효과**:
-   - 예상 최소/평균/최대 조회수
-   - 예상 클릭률 (CTR, %)
-   - 예상 전환율 (%, 보수적으로)
-   - 예상 ROI (투자 대비 수익률, %, 보수적으로)
-3. **타겟 오디언스**: 연령대, 관심사 추정
-4. **강점** (3가지)
-5. **주의사항** (있다면)
-6. **종합 추천**: "적극 추천" / "추천" / "조건부 추천" / "비추천"
+### 1. 브랜드 안전성 (Brand Safety) - 최우선 평가
+- **score** (0-100): 브랜드 이미지 손상 위험도 평가
+  - 80-100: 매우 안전 (논란 없음, 전문적 콘텐츠)
+  - 70-79: 안전 (일반적 수준)
+  - 50-69: 주의 필요 (일부 우려사항 있음)
+  - 0-49: 위험 (브랜드 이미지 손상 가능성)
+
+### 2. 리스크 평가 (Risk Assessment)
+- **level**: "low" / "medium" / "high"
+- **red_flags**: 발견된 심각한 문제점 리스트 (비속어, 논란, 부적절한 콘텐츠 등)
+- **concerns**: 주의가 필요한 사항 리스트
+
+### 3. 광고 집행 권고 (Recommendation)
+- **action**: "proceed" (진행 가능) / "caution" (신중 검토) / "block" (중단 권고)
+- **reason**: 판단 근거 (1-2문장)
+
+### 4. 콘텐츠 품질 (Content Quality)
+- **score** (0-100): 콘텐츠 전문성 및 품질
+- **professionalism**: "high" / "medium" / "low"
+- **consistency**: "excellent" / "good" / "inconsistent"
+
+### 5. 예상 광고 효과 (Ad Effect)
+- 예상 최소/평균/최대 조회수
+- 예상 클릭률 (CTR, %)
+- 예상 전환율 (%)
+- 예상 ROI (%)
+
+### 6. 상세 분석 (Detailed Analysis)
+- **target_audience**: 타겟 오디언스 (연령대, 관심사)
+- **strengths**: 강점 리스트 (3-5개)
+- **weaknesses**: 약점 리스트 (있다면)
 
 반드시 다음 JSON 형식으로만 답변하세요:
 {{
-  "quality_score": 85,
+  "brand_safety": {{
+    "score": 85
+  }},
+  "risk_assessment": {{
+    "level": "low",
+    "red_flags": [],
+    "concerns": ["일부 영상 조회수 편차"]
+  }},
+  "recommendation": {{
+    "action": "proceed",
+    "reason": "브랜드 안전성 확인, 전문적이고 일관된 콘텐츠 제공"
+  }},
+  "content_quality": {{
+    "score": 85,
+    "professionalism": "high",
+    "consistency": "excellent"
+  }},
   "ad_effect": {{
     "views_min": 60000,
     "views_avg": 80000,
@@ -308,10 +346,11 @@ def analyze_with_gemini(channel_name, subscriber_count, avg_views, engagement_ra
     "conversion_rate": 1.5,
     "roi": 250
   }},
-  "target_audience": "25-40세 IT 관심층",
-  "strengths": ["전문적인 콘텐츠", "높은 참여율", "일관된 주제"],
-  "concerns": ["일부 영상 조회수 편차"],
-  "recommendation": "추천"
+  "detailed_analysis": {{
+    "target_audience": "25-40세 IT 관심층",
+    "strengths": ["전문적인 콘텐츠", "높은 참여율", "일관된 주제"],
+    "weaknesses": []
+  }}
 }}
 """
 
@@ -518,45 +557,215 @@ if youtube_api_loaded and youtube_api_key:
                                     )
 
                                     if ai_result:
+                                        # ============================================
+                                        # 1단계: 브랜드 안전성 (대형 카드)
+                                        # ============================================
+                                        safety_score = ai_result['brand_safety']['score']
+                                        action = ai_result['recommendation']['action']
+
+                                        # 점수에 따른 색상 및 상태 결정
+                                        if safety_score >= 80:
+                                            safety_color = "#4caf50"  # 녹색
+                                            safety_bg = "#e8f5e9"
+                                            safety_border = "#4caf50"
+                                            safety_status = "매우 안전"
+                                            safety_emoji = "🟢"
+                                            action_badge = "✅ 광고 집행 가능"
+                                            action_color = "#4caf50"
+                                        elif safety_score >= 70:
+                                            safety_color = "#8bc34a"
+                                            safety_bg = "#f1f8e9"
+                                            safety_border = "#8bc34a"
+                                            safety_status = "안전"
+                                            safety_emoji = "🟢"
+                                            action_badge = "✅ 광고 집행 가능"
+                                            action_color = "#8bc34a"
+                                        elif safety_score >= 50:
+                                            safety_color = "#ff9800"
+                                            safety_bg = "#fff3e0"
+                                            safety_border = "#ff9800"
+                                            safety_status = "주의 필요"
+                                            safety_emoji = "🟡"
+                                            action_badge = "⚠️ 신중한 검토 필요"
+                                            action_color = "#ff9800"
+                                        else:
+                                            safety_color = "#f44336"
+                                            safety_bg = "#ffebee"
+                                            safety_border = "#f44336"
+                                            safety_status = "위험"
+                                            safety_emoji = "🔴"
+                                            action_badge = "🚨 광고 집행 중단 권고"
+                                            action_color = "#f44336"
+
+                                        # 대형 브랜드 안전성 카드
                                         st.markdown(f"""
-                                        <div class="ai-box">
-                                            <h4>🎯 AI 종합 분석 결과</h4>
-                                            <p><strong>콘텐츠 품질 점수:</strong> {ai_result['quality_score']}/100</p>
-                                            <p><strong>종합 추천:</strong> {ai_result['recommendation']}</p>
+                                        <div style="
+                                            background: linear-gradient(135deg, {safety_bg} 0%, #ffffff 100%);
+                                            padding: 30px;
+                                            border-radius: 15px;
+                                            border: 3px solid {safety_border};
+                                            margin: 20px 0;
+                                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                                        ">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <!-- 왼쪽: 점수 -->
+                                                <div style="flex: 1; text-align: center;">
+                                                    <div style="font-size: 5em; margin-bottom: 10px;">{safety_emoji}</div>
+                                                    <div style="font-size: 3.5em; font-weight: bold; color: {safety_color}; margin-bottom: 10px;">
+                                                        {safety_score}<span style="font-size: 0.5em; opacity: 0.7;">/100</span>
+                                                    </div>
+                                                    <div style="font-size: 1.3em; color: {safety_color}; font-weight: bold;">
+                                                        {safety_status}
+                                                    </div>
+                                                </div>
+
+                                                <!-- 중간: 구분선 -->
+                                                <div style="width: 2px; height: 150px; background: rgba(0,0,0,0.1); margin: 0 30px;"></div>
+
+                                                <!-- 오른쪽: 정보 -->
+                                                <div style="flex: 2;">
+                                                    <div style="
+                                                        background-color: {action_color};
+                                                        color: white;
+                                                        padding: 15px 25px;
+                                                        border-radius: 10px;
+                                                        font-size: 1.5em;
+                                                        font-weight: bold;
+                                                        text-align: center;
+                                                        margin-bottom: 20px;
+                                                    ">
+                                                        {action_badge}
+                                                    </div>
+                                                    <div style="font-size: 1.1em; line-height: 1.6; color: #333;">
+                                                        <strong>평가:</strong> {ai_result['recommendation']['reason']}
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                         """, unsafe_allow_html=True)
 
-                                        # 예상 광고 효과
-                                        st.markdown("### 📊 예상 광고 효과")
+                                        # 리스크가 있는 경우 경고 표시
+                                        if ai_result['risk_assessment'].get('red_flags'):
+                                            st.error("🚩 **발견된 브랜드 리스크**")
+                                            for flag in ai_result['risk_assessment']['red_flags']:
+                                                st.markdown(f"""
+                                                <div style="
+                                                    background-color: #ffebee;
+                                                    padding: 15px;
+                                                    border-radius: 8px;
+                                                    margin: 10px 0;
+                                                    border-left: 5px solid #f44336;
+                                                ">
+                                                    <strong>⚠️ {flag}</strong>
+                                                </div>
+                                                """, unsafe_allow_html=True)
 
-                                        effect_col1, effect_col2 = st.columns(2)
+                                            # 중단 권고 시 여기서 멈춤
+                                            if action == "block":
+                                                st.info("💡 이 채널은 브랜드 이미지에 부정적 영향을 줄 수 있어 광고 집행을 권장하지 않습니다.")
+                                                st.stop()
 
-                                        with effect_col1:
-                                            st.metric("예상 조회수 (최소)", format_number(ai_result['ad_effect']['views_min']))
-                                            st.metric("예상 조회수 (평균)", format_number(ai_result['ad_effect']['views_avg']))
-                                            st.metric("예상 조회수 (최대)", format_number(ai_result['ad_effect']['views_max']))
+                                        # 주의 필요 시 경고
+                                        if action == "caution" and ai_result['risk_assessment'].get('concerns'):
+                                            with st.expander("⚠️ 주의사항 확인", expanded=True):
+                                                st.warning("이 채널은 일부 주의사항이 있습니다. 신중한 검토 후 광고 집행을 결정하세요.")
+                                                for concern in ai_result['risk_assessment']['concerns']:
+                                                    st.write(f"• {concern}")
 
-                                        with effect_col2:
-                                            st.metric("예상 클릭률 (CTR)", f"{ai_result['ad_effect']['ctr']}%")
-                                            st.metric("예상 전환율", f"{ai_result['ad_effect']['conversion_rate']}%")
-                                            st.metric("예상 ROI", f"{ai_result['ad_effect']['roi']}%")
+                                        # ============================================
+                                        # 2단계: 콘텐츠 품질 + 광고 효과
+                                        # ============================================
+                                        st.markdown("---")
 
-                                        # 타겟 오디언스
-                                        st.info(f"**타겟 오디언스:** {ai_result['target_audience']}")
+                                        col_quality, col_effect = st.columns([1, 2])
 
-                                        # 강점과 주의사항
-                                        strength_col, concern_col = st.columns(2)
+                                        # 콘텐츠 품질 점수
+                                        with col_quality:
+                                            quality_score = ai_result['content_quality']['score']
 
-                                        with strength_col:
+                                            st.markdown(f"""
+                                            <div style="
+                                                background-color: #f5f5f5;
+                                                padding: 25px;
+                                                border-radius: 12px;
+                                                text-align: center;
+                                                border: 2px solid #1976d2;
+                                            ">
+                                                <h3 style="margin: 0 0 15px 0; color: #1976d2;">📊 콘텐츠 품질</h3>
+                                                <div style="font-size: 3em; font-weight: bold; color: #1976d2; margin: 10px 0;">
+                                                    {quality_score}<span style="font-size: 0.4em; opacity: 0.7;">/100</span>
+                                                </div>
+                                                <div style="font-size: 1.1em; color: #666;">
+                                                    전문성: {ai_result['content_quality']['professionalism']}<br>
+                                                    일관성: {ai_result['content_quality']['consistency']}
+                                                </div>
+                                            </div>
+                                            """, unsafe_allow_html=True)
+
+                                        # 광고 효과 예측
+                                        with col_effect:
+                                            st.markdown("### 📈 예상 광고 효과")
+
+                                            effect_col1, effect_col2, effect_col3 = st.columns(3)
+
+                                            with effect_col1:
+                                                st.metric(
+                                                    "예상 조회수 (최소)",
+                                                    format_number(ai_result['ad_effect']['views_min']),
+                                                    help="최소 예상 조회수"
+                                                )
+                                                st.metric(
+                                                    "예상 조회수 (평균)",
+                                                    format_number(ai_result['ad_effect']['views_avg']),
+                                                    help="평균 예상 조회수"
+                                                )
+                                                st.metric(
+                                                    "예상 조회수 (최대)",
+                                                    format_number(ai_result['ad_effect']['views_max']),
+                                                    help="최대 예상 조회수"
+                                                )
+
+                                            with effect_col2:
+                                                st.metric(
+                                                    "예상 클릭률 (CTR)",
+                                                    f"{ai_result['ad_effect']['ctr']}%",
+                                                    help="예상 클릭률"
+                                                )
+
+                                            with effect_col3:
+                                                st.metric(
+                                                    "예상 전환율",
+                                                    f"{ai_result['ad_effect']['conversion_rate']}%",
+                                                    help="예상 구매 전환율"
+                                                )
+                                                st.metric(
+                                                    "예상 ROI",
+                                                    f"{ai_result['ad_effect']['roi']}%",
+                                                    help="투자 대비 수익률"
+                                                )
+
+                                        # ============================================
+                                        # 3단계: 상세 분석
+                                        # ============================================
+                                        st.markdown("---")
+                                        st.subheader("📋 상세 분석")
+
+                                        detail_col1, detail_col2, detail_col3 = st.columns(3)
+
+                                        with detail_col1:
+                                            st.markdown("**🎯 타겟 오디언스**")
+                                            st.info(ai_result['detailed_analysis']['target_audience'])
+
+                                        with detail_col2:
                                             st.markdown("**✅ 강점**")
-                                            for strength in ai_result['strengths']:
+                                            for strength in ai_result['detailed_analysis']['strengths']:
                                                 st.write(f"• {strength}")
 
-                                        with concern_col:
+                                        with detail_col3:
                                             st.markdown("**⚠️ 주의사항**")
-                                            if ai_result.get('concerns'):
-                                                for concern in ai_result['concerns']:
-                                                    st.write(f"• {concern}")
+                                            if ai_result['detailed_analysis'].get('weaknesses'):
+                                                for weakness in ai_result['detailed_analysis']['weaknesses']:
+                                                    st.write(f"• {weakness}")
                                             else:
                                                 st.write("• 특이사항 없음")
 
