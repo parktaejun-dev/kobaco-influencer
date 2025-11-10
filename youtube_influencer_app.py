@@ -351,7 +351,7 @@ if youtube_api_loaded and youtube_api_key:
                         ]
                         avg_engagement_rate = sum(engagement_rates) / len(engagement_rates)
 
-                        # 비용 계산 (채널 건강도 정보를 얻기 위한 초기 계산)
+                        # 비용 계산 (v4.4 - 프리미엄 할증 포함)
                         cost_data = cost_calculator.estimate_ad_cost_korea(
                             subscriber_count=subscriber_count,
                             avg_views=avg_views,
@@ -359,6 +359,8 @@ if youtube_api_loaded and youtube_api_key:
                             avg_likes=avg_likes,
                             avg_comments=avg_comments,
                             recent_90day_avg_views=None,
+                            video_count=video_count,
+                            channel_age_days=None,
                             cpm_krw=cpm_value
                         )
 
@@ -515,6 +517,98 @@ if youtube_api_loaded and youtube_api_key:
                                 - 반대로 매우 건강한 채널은 프리미엄이 붙습니다
                                 - 공정한 가격 책정을 위한 시스템입니다
                                 """)
+
+                        # 채널 프리미엄 정보 표시 (v4.4 신규)
+                        premium_details = cost_data.get('premium_details', {})
+                        if premium_details:
+                            st.markdown("---")
+                            st.subheader("✨ 채널 프리미엄 분석")
+
+                            # 종합 요약
+                            st.info(f"**{premium_details['summary']}**")
+
+                            # 4개의 프리미엄 요소를 2x2 그리드로 표시
+                            prem_col1, prem_col2 = st.columns(2)
+
+                            with prem_col1:
+                                # 건강도
+                                health = premium_details['health']
+                                st.markdown(f"""
+                                <div style="background: rgba(255, 107, 53, 0.05); padding: 15px; border-radius: 8px; border-left: 4px solid {health['color']}; margin-bottom: 10px;">
+                                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">
+                                        {health['emoji']} 채널 건강도
+                                    </div>
+                                    <div style="color: #555; margin-bottom: 5px;">
+                                        상태: <strong>{health['status']}</strong> (×{health['multiplier']})
+                                    </div>
+                                    <div style="font-size: 0.85em; color: #666;">
+                                        {health['description']}
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                                # 일관성
+                                consistency = premium_details['consistency']
+                                st.markdown(f"""
+                                <div style="background: rgba(76, 175, 80, 0.05); padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50; margin-bottom: 10px;">
+                                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">
+                                        🎯 업로드 일관성
+                                    </div>
+                                    <div style="color: #555; margin-bottom: 5px;">
+                                        빈도: <strong>{consistency['upload_frequency']}</strong> (×{consistency['multiplier']})
+                                    </div>
+                                    <div style="font-size: 0.85em; color: #666;">
+                                        {consistency['description']}
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                            with prem_col2:
+                                # 성장세
+                                growth = premium_details['growth']
+                                st.markdown(f"""
+                                <div style="background: rgba(33, 150, 243, 0.05); padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3; margin-bottom: 10px;">
+                                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">
+                                        📈 성장세
+                                    </div>
+                                    <div style="color: #555; margin-bottom: 5px;">
+                                        상태: <strong>{growth['status']}</strong> (×{growth['multiplier']})
+                                    </div>
+                                    <div style="font-size: 0.85em; color: #666;">
+                                        {growth['description']}
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                                # 팬덤 충성도
+                                loyalty = premium_details['loyalty']
+                                st.markdown(f"""
+                                <div style="background: rgba(156, 39, 176, 0.05); padding: 15px; border-radius: 8px; border-left: 4px solid #9c27b0; margin-bottom: 10px;">
+                                    <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">
+                                        💬 팬덤 충성도
+                                    </div>
+                                    <div style="color: #555; margin-bottom: 5px;">
+                                        상태: <strong>{loyalty['status']}</strong> (×{loyalty['multiplier']})
+                                    </div>
+                                    <div style="font-size: 0.85em; color: #666;">
+                                        {loyalty['description']}
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+
+                            # 종합 프리미엄 계수
+                            total_multiplier = premium_details['total_multiplier']
+                            premium_pct = (total_multiplier - 1.0) * 100
+                            st.markdown(f"""
+                            <div style="background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, #ffffff 100%); padding: 20px; border-radius: 12px; border: 2px solid #ffc107; margin: 15px 0; text-align: center;">
+                                <div style="font-size: 1.3em; font-weight: bold; color: #f57c00; margin-bottom: 5px;">
+                                    📊 종합 프리미엄 계수: ×{total_multiplier}
+                                </div>
+                                <div style="font-size: 1.1em; color: #666;">
+                                    기본 비용 대비 <strong>{premium_pct:+.1f}%</strong> 조정
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
 
                         # 광고 비용 계산 및 표시 (CPM 값 사용)
                         st.markdown("---")
