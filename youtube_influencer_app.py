@@ -297,25 +297,6 @@ if youtube_api_loaded and youtube_api_key:
         key="youtube_url_input"
     )
 
-    # CPM 단가 조정
-    st.write("**CPM 단가 설정**")
-    st.caption("💡 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
-    cpm_value = st.slider(
-        "1,000뷰당 비용 (원)",
-        min_value=10000,
-        max_value=100000,
-        value=30000,
-        step=5000,
-        help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원"
-    )
-
-    # AI 분석 버튼 (URL 입력 직후)
-    ai_button_clicked = False
-    if youtube_url:
-        st.markdown("---")
-        ai_button_clicked = st.button("🤖 AI 분석 시작", type="primary", use_container_width=True, key="ai_analysis_btn_top")
-        st.markdown("---")
-
     # 처리 시작 (URL 입력시 유튜브 정보 표시)
     if youtube_url:
         with st.spinner("채널 정보를 분석하는 중..."):
@@ -523,6 +504,25 @@ if youtube_api_loaded and youtube_api_key:
                             st.write("• 참여 질 보정: 댓글/좋아요 비율 분석")
                             st.caption("데이터 출처: PageOne Formula, Shopify, Descript, ADOPTER Media (2024-2025)")
 
+                        # CPM 단가 조정
+                        st.markdown("---")
+                        st.write("**CPM 단가 설정**")
+                        st.caption("💡 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
+                        cpm_value = st.slider(
+                            "1,000뷰당 비용 (원)",
+                            min_value=10000,
+                            max_value=100000,
+                            value=30000,
+                            step=5000,
+                            help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원"
+                        )
+
+                        # AI 분석 버튼
+                        st.markdown("---")
+                        ai_button_clicked = False
+                        if GEMINI_AVAILABLE and gemini_api_loaded:
+                            ai_button_clicked = st.button("🤖 AI 분석 시작", type="primary", use_container_width=True, key="ai_analysis_btn")
+
                         # AI 분석 실행 (버튼이 클릭되었을 때)
                         if GEMINI_AVAILABLE and gemini_api_loaded and ai_button_clicked:
                             st.markdown("---")
@@ -636,16 +636,16 @@ if youtube_api_loaded and youtube_api_key:
                                 safety_score = ai_result['brand_safety']['score']
                                 action = ai_result['recommendation']['action']
 
-                                # 점수에 따른 색상 및 상태 결정
-                                if safety_score >= 80:
+                                # 점수에 따른 색상 및 상태 결정 (엄격한 기준)
+                                if safety_score >= 90:
                                     safety_color = "#4caf50"
                                     safety_bg = "#e8f5e9"
                                     safety_border = "#4caf50"
                                     safety_status = "매우 안전"
                                     safety_emoji = "🟢"
-                                    action_badge = "✅ 광고 집행 가능"
+                                    action_badge = "✅ 광고 집행 적극 권장"
                                     action_color = "#4caf50"
-                                elif safety_score >= 70:
+                                elif safety_score >= 80:
                                     safety_color = "#8bc34a"
                                     safety_bg = "#f1f8e9"
                                     safety_border = "#8bc34a"
@@ -653,7 +653,7 @@ if youtube_api_loaded and youtube_api_key:
                                     safety_emoji = "🟢"
                                     action_badge = "✅ 광고 집행 가능"
                                     action_color = "#8bc34a"
-                                elif safety_score >= 50:
+                                elif safety_score >= 70:
                                     safety_color = "#ff9800"
                                     safety_bg = "#fff3e0"
                                     safety_border = "#ff9800"
@@ -722,19 +722,19 @@ if youtube_api_loaded and youtube_api_key:
                                                     score = category_data.get('score', 0)
                                                     issues = category_data.get('issues', [])
 
-                                                    # 점수에 따른 색상
-                                                    if score >= 80:
+                                                    # 점수에 따른 색상 (엄격한 기준)
+                                                    if score >= 90:
                                                         color = "#4caf50"
                                                         bg = "#e8f5e9"
-                                                        status_text = "양호"
-                                                    elif score >= 70:
+                                                        status_text = "우수"
+                                                    elif score >= 80:
                                                         color = "#8bc34a"
                                                         bg = "#f1f8e9"
-                                                        status_text = "보통"
-                                                    elif score >= 60:
+                                                        status_text = "양호"
+                                                    elif score >= 70:
                                                         color = "#ff9800"
                                                         bg = "#fff3e0"
-                                                        status_text = "주의"
+                                                        status_text = "보통"
                                                     else:
                                                         color = "#f44336"
                                                         bg = "#ffebee"
@@ -833,19 +833,6 @@ if youtube_api_loaded and youtube_api_key:
                                         st.warning("이 채널은 일부 주의사항이 있습니다. 신중한 검토 후 광고 집행을 결정하세요.")
                                         for concern in ai_result['risk_assessment']['concerns']:
                                             st.write(f"• {concern}")
-
-                                with detail_col2:
-                                    st.markdown("**✅ 강점**")
-                                    for strength in ai_result['detailed_analysis']['strengths']:
-                                        st.write(f"• {strength}")
-
-                                with detail_col3:
-                                    st.markdown("**⚠️ 주의사항**")
-                                    if ai_result['detailed_analysis'].get('weaknesses'):
-                                        for weakness in ai_result['detailed_analysis']['weaknesses']:
-                                            st.write(f"• {weakness}")
-                                    else:
-                                        st.write("• 특이사항 없음")
 
                     else:
                         st.warning("⚠️ 최근 영상 정보를 가져올 수 없습니다.")
