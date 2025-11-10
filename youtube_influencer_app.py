@@ -289,6 +289,21 @@ if youtube_api_loaded and youtube_api_key:
     # === 1컬럼 레이아웃 ===
     st.subheader("📝 채널 정보 입력")
 
+    # CPM 단가 설정 (URL 입력 전)
+    st.markdown("### 💰 CPM 단가 설정")
+    st.caption("💡 한국 시장 평균 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
+    cpm_value = st.slider(
+        "1,000뷰당 비용 (원)",
+        min_value=10000,
+        max_value=100000,
+        value=30000,
+        step=5000,
+        help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원 (한국 평균)",
+        key='cpm_slider'
+    )
+
+    st.markdown("---")
+
     # URL 입력
     youtube_url = st.text_input(
         "유튜브 채널 URL",
@@ -298,9 +313,6 @@ if youtube_api_loaded and youtube_api_key:
 
     # 처리 시작 (URL 입력시 유튜브 정보 표시)
     if youtube_url:
-        # CPM 값을 세션에서 가져오기 (슬라이더는 나중에 표시)
-        cpm_value = st.session_state.get('cpm_slider', 30000)
-
         with st.spinner("채널 정보를 분석하는 중..."):
             channel_identifier, pattern = extract_channel_id(youtube_url)
 
@@ -504,49 +516,13 @@ if youtube_api_loaded and youtube_api_key:
                                 - 공정한 가격 책정을 위한 시스템입니다
                                 """)
 
-                        # CPM 단가 조정
+                        # 광고 비용 계산 및 표시 (CPM 값 사용)
                         st.markdown("---")
-                        st.markdown("### 💰 CPM 단가 설정")
-                        st.caption("💡 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
-                        cpm_value = st.slider(
-                            "1,000뷰당 비용 (원)",
-                            min_value=10000,
-                            max_value=100000,
-                            value=30000,
-                            step=5000,
-                            help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원",
-                            key='cpm_slider'
-                        )
-
-                        st.info(f"🔄 현재 CPM 설정: {format_number(cpm_value)}원 - 슬라이더를 움직이면 아래 비용이 즉시 업데이트됩니다")
-
-                        # CPM 값으로 비용 재계산
-                        cost_data = cost_calculator.estimate_ad_cost_korea(
-                            subscriber_count=subscriber_count,
-                            avg_views=avg_views,
-                            engagement_rate=avg_engagement_rate,
-                            avg_likes=avg_likes,
-                            avg_comments=avg_comments,
-                            recent_90day_avg_views=None,
-                            cpm_krw=cpm_value
-                        )
+                        st.subheader("💰 1회 광고 적정 비용")
 
                         final_cost = cost_data['final_cost']
                         min_cost = cost_data['min_cost']
                         max_cost = cost_data['max_cost']
-
-                        # CPM vs 티어 최소값 비교 표시
-                        base_cpm_calc = int((avg_views / 1000) * cpm_value)
-                        tier_base = cost_data.get('tier_base', 0)
-
-                        if tier_base > base_cpm_calc:
-                            st.warning(f"⚠️ 현재 티어 최소 보장 금액({format_number(tier_base)}원)이 CPM 계산값({format_number(base_cpm_calc)}원)보다 높아 최소 보장 금액이 적용되었습니다. CPM을 높이면 비용이 증가합니다.")
-                        else:
-                            st.success(f"✅ CPM 기반 계산이 적용되었습니다. 슬라이더 조정 시 비용이 즉시 변경됩니다.")
-
-                        # 광고 비용 표시
-                        st.markdown("---")
-                        st.subheader("💰 1회 광고 적정 비용")
 
                         cost_col1, cost_col2, cost_col3 = st.columns(3)
 
