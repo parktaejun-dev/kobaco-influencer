@@ -301,6 +301,9 @@ if youtube_api_loaded and youtube_api_key:
 
     # 처리 시작 (URL 입력시 유튜브 정보 표시)
     if youtube_url:
+        # CPM 값을 세션에서 가져오기 (슬라이더는 나중에 표시)
+        cpm_value = st.session_state.get('cpm_slider', 30000)
+
         with st.spinner("채널 정보를 분석하는 중..."):
             channel_identifier, pattern = extract_channel_id(youtube_url)
 
@@ -581,7 +584,8 @@ if youtube_api_loaded and youtube_api_key:
                             max_value=100000,
                             value=30000,
                             step=5000,
-                            help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원"
+                            help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원",
+                            key='cpm_slider'
                         )
 
                         # AI 분석 버튼
