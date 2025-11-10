@@ -1,6 +1,7 @@
 """
-유튜브 인플루언서 검색 엔진 v4.0 (AI Enhanced)
+유튜브 인플루언서 검색 엔진 v4.3 (AI Enhanced + Smart Tier)
 - Gemini AI를 활용한 광고 효과 예측
+- 스마트 티어 시스템 (채널 건강도 평가)
 - 1컬럼 레이아웃
 - 콘텐츠 품질 자동 분석
 """
@@ -24,7 +25,7 @@ except ImportError:
 
 # 페이지 설정
 st.set_page_config(
-    page_title="유튜브 인플루언서 검색 엔진 v4.0",
+    page_title="유튜브 인플루언서 검색 엔진 v4.3",
     page_icon="🎬",
     layout="wide"
 )
@@ -121,7 +122,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 제목 ---
-st.title("🎬 유튜브 인플루언서 검색 엔진 v4.0")
+st.title("🎬 유튜브 인플루언서 검색 엔진 v4.3")
+st.caption("Smart Tier System 🔥 | AI Brand Safety Analysis ✅")
 st.caption("🤖 AI 기반 광고 효과 예측 기능 탑재")
 
 # --- API 키 로드 ---
@@ -297,25 +299,6 @@ if youtube_api_loaded and youtube_api_key:
         key="youtube_url_input"
     )
 
-    # CPM 단가 조정
-    st.write("**CPM 단가 설정**")
-    st.caption("💡 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
-    cpm_value = st.slider(
-        "1,000뷰당 비용 (원)",
-        min_value=10000,
-        max_value=100000,
-        value=30000,
-        step=5000,
-        help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원"
-    )
-
-    # AI 분석 버튼 (URL 입력 직후)
-    ai_button_clicked = False
-    if youtube_url:
-        st.markdown("---")
-        ai_button_clicked = st.button("🤖 AI 분석 시작", type="primary", use_container_width=True, key="ai_analysis_btn_top")
-        st.markdown("---")
-
     # 처리 시작 (URL 입력시 유튜브 정보 표시)
     if youtube_url:
         with st.spinner("채널 정보를 분석하는 중..."):
@@ -425,6 +408,65 @@ if youtube_api_loaded and youtube_api_key:
                         </div>
                         """, unsafe_allow_html=True)
 
+                        # 채널 건강도 표시 (v4.3 신규)
+                        channel_health = cost_data.get('channel_health', {})
+                        if channel_health:
+                            health_ratio = channel_health['ratio']
+                            health_level = channel_health['level']
+                            health_emoji = channel_health['emoji']
+                            health_desc = channel_health['description']
+                            health_color = channel_health['color']
+                            health_multiplier = channel_health['multiplier']
+
+                            st.markdown(f"""
+                            <div style="background: linear-gradient(135deg, rgba({int(health_color[1:3], 16)}, {int(health_color[3:5], 16)}, {int(health_color[5:7], 16)}, 0.1) 0%, #ffffff 100%); padding: 20px; border-radius: 12px; border-left: 5px solid {health_color}; margin: 15px 0;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div>
+                                        <div style="font-size: 1.5em; font-weight: bold; color: {health_color}; margin-bottom: 5px;">
+                                            {health_emoji} 채널 건강도: {health_level}
+                                        </div>
+                                        <div style="font-size: 1em; color: #666;">
+                                            조회수/구독자 비율: <strong>{health_ratio:.2f}%</strong> |
+                                            티어 조정 계수: <strong>×{health_multiplier}</strong>
+                                        </div>
+                                        <div style="font-size: 0.9em; color: #555; margin-top: 8px;">
+                                            {health_desc}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                            # 건강도 기준 설명
+                            with st.expander("💡 채널 건강도란? (클릭하여 자세히 보기)"):
+                                st.markdown("""
+                                ### 📊 조회수/구독자 비율이란?
+
+                                **건강한 채널의 지표:**
+                                - 구독자 수만 많은 게 아니라, 실제로 시청하는 구독자가 많은 채널
+                                - 조회수가 구독자 수에 비례하는 활발한 채널
+
+                                **비율 기준:**
+                                - 🔥 **30% 이상**: 초건강 (10만 구독자 → 3만+ 조회수)
+                                - ✅ **20-30%**: 매우 건강 (10만 구독자 → 2-3만 조회수)
+                                - ✅ **15-20%**: 건강 (10만 구독자 → 1.5-2만 조회수)
+                                - ⚖️ **10-15%**: 정상 (10만 구독자 → 1-1.5만 조회수)
+                                - ⚠️ **7-10%**: 약간 약화 (10만 구독자 → 7천-1만 조회수)
+                                - ⚠️ **5-7%**: 약화 (10만 구독자 → 5천-7천 조회수)
+                                - 🟡 **3-5%**: 죽어감 (10만 구독자 → 3천-5천 조회수)
+                                - 🔴 **3% 미만**: 죽음 (구독자만 많고 조회수 없음)
+
+                                **왜 중요한가요?**
+                                - 구독자 수는 "과거의 영광"일 수 있습니다
+                                - 실제 광고 효과는 "현재 조회수"로 결정됩니다
+                                - 건강도가 낮으면 광고 집행 효과가 떨어집니다
+
+                                **티어 조정 계수:**
+                                - 건강도가 낮은 채널은 광고 비용이 하향 조정됩니다
+                                - 반대로 매우 건강한 채널은 프리미엄이 붙습니다
+                                - 공정한 가격 책정을 위한 시스템입니다
+                                """)
+
                         # 광고 비용
                         st.markdown("---")
                         st.subheader("💰 1회 광고 적정 비용")
@@ -512,6 +554,12 @@ if youtube_api_loaded and youtube_api_key:
                             st.write("• 콘텐츠 재사용권 포함 시 20-50% 추가")
                             st.write("• 독점 계약 시 30-100% 추가 가능")
                             st.write("")
+                            st.write("**v4.3 개선사항 (2025-11)**")
+                            st.write("• 스마트 티어 시스템 도입 (채널 건강도 평가)")
+                            st.write("• 조회수/구독자 비율 기반 8단계 건강도 측정")
+                            st.write("• 건강도에 따른 가격 조정 (0.3x ~ 1.2x)")
+                            st.write("• 구독자 뻥튀기 문제 해결")
+                            st.write("")
                             st.write("**v4.2 개선사항 (2025-11)**")
                             st.write("• 티어별 최소 보장 금액 합리화 (Mega 4,750만→1,500만)")
                             st.write("• CPM 우선 작동, 티어는 보조 역할로 조정")
@@ -522,6 +570,25 @@ if youtube_api_loaded and youtube_api_key:
                             st.write("• 최근 90일 CPM 계산 (죽은 채널 방지)")
                             st.write("• 참여 질 보정: 댓글/좋아요 비율 분석")
                             st.caption("데이터 출처: PageOne Formula, Shopify, Descript, ADOPTER Media (2024-2025)")
+
+                        # CPM 단가 조정
+                        st.markdown("---")
+                        st.write("**CPM 단가 설정**")
+                        st.caption("💡 브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 노출)")
+                        cpm_value = st.slider(
+                            "1,000뷰당 비용 (원)",
+                            min_value=10000,
+                            max_value=100000,
+                            value=30000,
+                            step=5000,
+                            help="광고 시장 상황에 따라 CPM 단가를 조정할 수 있습니다. 기본값: 30,000원"
+                        )
+
+                        # AI 분석 버튼
+                        st.markdown("---")
+                        ai_button_clicked = False
+                        if GEMINI_AVAILABLE and gemini_api_loaded:
+                            ai_button_clicked = st.button("🤖 AI 분석 시작", type="primary", use_container_width=True, key="ai_analysis_btn")
 
                         # AI 분석 실행 (버튼이 클릭되었을 때)
                         if GEMINI_AVAILABLE and gemini_api_loaded and ai_button_clicked:
@@ -636,16 +703,16 @@ if youtube_api_loaded and youtube_api_key:
                                 safety_score = ai_result['brand_safety']['score']
                                 action = ai_result['recommendation']['action']
 
-                                # 점수에 따른 색상 및 상태 결정
-                                if safety_score >= 80:
+                                # 점수에 따른 색상 및 상태 결정 (엄격한 기준)
+                                if safety_score >= 90:
                                     safety_color = "#4caf50"
                                     safety_bg = "#e8f5e9"
                                     safety_border = "#4caf50"
                                     safety_status = "매우 안전"
                                     safety_emoji = "🟢"
-                                    action_badge = "✅ 광고 집행 가능"
+                                    action_badge = "✅ 광고 집행 적극 권장"
                                     action_color = "#4caf50"
-                                elif safety_score >= 70:
+                                elif safety_score >= 80:
                                     safety_color = "#8bc34a"
                                     safety_bg = "#f1f8e9"
                                     safety_border = "#8bc34a"
@@ -653,7 +720,7 @@ if youtube_api_loaded and youtube_api_key:
                                     safety_emoji = "🟢"
                                     action_badge = "✅ 광고 집행 가능"
                                     action_color = "#8bc34a"
-                                elif safety_score >= 50:
+                                elif safety_score >= 70:
                                     safety_color = "#ff9800"
                                     safety_bg = "#fff3e0"
                                     safety_border = "#ff9800"
@@ -722,19 +789,19 @@ if youtube_api_loaded and youtube_api_key:
                                                     score = category_data.get('score', 0)
                                                     issues = category_data.get('issues', [])
 
-                                                    # 점수에 따른 색상
-                                                    if score >= 80:
+                                                    # 점수에 따른 색상 (엄격한 기준)
+                                                    if score >= 90:
                                                         color = "#4caf50"
                                                         bg = "#e8f5e9"
-                                                        status_text = "양호"
-                                                    elif score >= 70:
+                                                        status_text = "우수"
+                                                    elif score >= 80:
                                                         color = "#8bc34a"
                                                         bg = "#f1f8e9"
-                                                        status_text = "보통"
-                                                    elif score >= 60:
+                                                        status_text = "양호"
+                                                    elif score >= 70:
                                                         color = "#ff9800"
                                                         bg = "#fff3e0"
-                                                        status_text = "주의"
+                                                        status_text = "보통"
                                                     else:
                                                         color = "#f44336"
                                                         bg = "#ffebee"
@@ -834,19 +901,6 @@ if youtube_api_loaded and youtube_api_key:
                                         for concern in ai_result['risk_assessment']['concerns']:
                                             st.write(f"• {concern}")
 
-                                with detail_col2:
-                                    st.markdown("**✅ 강점**")
-                                    for strength in ai_result['detailed_analysis']['strengths']:
-                                        st.write(f"• {strength}")
-
-                                with detail_col3:
-                                    st.markdown("**⚠️ 주의사항**")
-                                    if ai_result['detailed_analysis'].get('weaknesses'):
-                                        for weakness in ai_result['detailed_analysis']['weaknesses']:
-                                            st.write(f"• {weakness}")
-                                    else:
-                                        st.write("• 특이사항 없음")
-
                     else:
                         st.warning("⚠️ 최근 영상 정보를 가져올 수 없습니다.")
 
@@ -855,4 +909,4 @@ else:
 
 # 푸터
 st.markdown("---")
-st.caption("Made with ❤️ | 유튜브 인플루언서 검색 엔진 v4.1 (2025) | Powered by Gemini AI")
+st.caption("Made with ❤️ | 유튜브 인플루언서 검색 엔진 v4.3 (2025) | Powered by Gemini AI + Smart Tier System")
