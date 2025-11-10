@@ -1,0 +1,16 @@
+name: Keep Streamlit App Alive
+
+on:
+  schedule:
+    # 15분마다 한 번씩 실행
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping-site:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping Streamlit App
+        # 60초까지 응답 대기
+        run: curl -m 60 https://kobaco-influencer.streamlit.app/ || true
