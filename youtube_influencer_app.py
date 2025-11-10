@@ -518,6 +518,8 @@ if youtube_api_loaded and youtube_api_key:
                             key='cpm_slider'
                         )
 
+                        st.info(f"🔄 현재 CPM 설정: {format_number(cpm_value)}원 - 슬라이더를 움직이면 아래 비용이 즉시 업데이트됩니다")
+
                         # CPM 값으로 비용 재계산
                         cost_data = cost_calculator.estimate_ad_cost_korea(
                             subscriber_count=subscriber_count,
