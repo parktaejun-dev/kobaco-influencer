@@ -1,11 +1,12 @@
 """
-유튜브 인플루언서 광고 비용 산출 모듈 (v4.0)
+유튜브 인플루언서 광고 비용 산출 모듈 (v4.1)
 2024-2025년 글로벌 벤치마크(PageOne Formula, Shopify, Descript 등) 기준 적용
 
-v4.0 개선사항:
+v4.1 개선사항:
+- 콘텐츠 포맷 프리미엄 제거 (PPL 단일 기준)
 - 최근 90일 CPM 계산 추가 (죽은 채널 방지)
 - 참여 질 보정 추가 (댓글/좋아요 비율)
-- 콘텐츠 포맷 프리미엄 추가
+- CPM 기본값 30,000원으로 조정 (시장 반영)
 """
 
 def get_influencer_tier(subscriber_count):
@@ -27,10 +28,11 @@ def get_influencer_tier(subscriber_count):
 def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
                             avg_likes, avg_comments,
                             recent_90day_avg_views=None,
-                            content_format="기본",
                             cpm_krw=30000):
     """
-    글로벌 표준 광고 비용 산출 로직 (CPM 기반) - v4.0
+    글로벌 표준 광고 비용 산출 로직 (CPM 기반) - v4.1
+
+    브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 단순 노출)
 
     Parameters:
     -----------
@@ -46,8 +48,6 @@ def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
         평균 댓글 수
     recent_90day_avg_views : int, optional
         최근 90일 평균 조회수 (죽은 채널 방지용)
-    content_format : str, optional
-        콘텐츠 포맷 ("기본", "단순 노출형", "제품 리뷰", "비교/추천", "사용후기", "장기 캠페인")
     cpm_krw : int, optional
         1,000뷰당 비용 (기본값: 30,000원)
 
@@ -126,19 +126,8 @@ def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
     # STEP 7: 최종 참여 계수
     final_engagement_multiplier = engagement_multiplier * quality_multiplier
 
-    # STEP 8: 콘텐츠 포맷 프리미엄
-    format_multipliers = {
-        "기본": 1.0,
-        "단순 노출형": 1.0,
-        "제품 리뷰": 1.2,
-        "비교/추천": 1.35,
-        "사용후기": 1.35,
-        "장기 캠페인": 1.5
-    }
-    format_multiplier = format_multipliers.get(content_format, 1.0)
-
-    # STEP 9: 글로벌 최종 비용
-    final_cost = int(base_cost * final_engagement_multiplier * format_multiplier)
+    # STEP 8: 글로벌 최종 비용 (PPL 기준)
+    final_cost = int(base_cost * final_engagement_multiplier)
 
     return {
         'base_cost_cpm': int(base_cost_cpm),
@@ -155,8 +144,6 @@ def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
         'quality_level': quality_level,
 
         'final_engagement_multiplier': round(final_engagement_multiplier, 3),
-        'format_multiplier': format_multiplier,
-        'content_format': content_format,
 
         'final_cost': final_cost,
         'cpm_used': cpm_krw
@@ -165,10 +152,11 @@ def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
 def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
                           avg_likes, avg_comments,
                           recent_90day_avg_views=None,
-                          content_format="기본",
                           cpm_krw=30000):
     """
-    한국 시장 기준 광고 비용 산출 로직 - v4.0
+    한국 시장 기준 광고 비용 산출 로직 - v4.1
+
+    브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 단순 노출)
 
     Parameters:
     -----------
@@ -184,8 +172,6 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
         평균 댓글 수
     recent_90day_avg_views : int, optional
         최근 90일 평균 조회수
-    content_format : str, optional
-        콘텐츠 포맷
     cpm_krw : int, optional
         1,000뷰당 비용 (기본값: 30,000원)
 
@@ -198,7 +184,7 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
     global_cost = estimate_ad_cost_global(
         subscriber_count, avg_views, engagement_rate,
         avg_likes, avg_comments,
-        recent_90day_avg_views, content_format, cpm_krw
+        recent_90day_avg_views, cpm_krw
     )
 
     # STEP 10: 한국 시장 조정 계수
@@ -228,8 +214,6 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
         'quality_level': global_cost['quality_level'],
 
         'final_engagement_multiplier': global_cost['final_engagement_multiplier'],
-        'format_multiplier': global_cost['format_multiplier'],
-        'content_format': global_cost['content_format'],
 
         'global_final_cost': global_cost['final_cost'],
         'korea_adjustment': korea_adjustment,
