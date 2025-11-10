@@ -27,7 +27,8 @@ def get_influencer_tier(subscriber_count):
 def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
                             avg_likes, avg_comments,
                             recent_90day_avg_views=None,
-                            content_format="기본"):
+                            content_format="기본",
+                            cpm_krw=30000):
     """
     글로벌 표준 광고 비용 산출 로직 (CPM 기반) - v4.0
 
@@ -47,6 +48,8 @@ def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
         최근 90일 평균 조회수 (죽은 채널 방지용)
     content_format : str, optional
         콘텐츠 포맷 ("기본", "단순 노출형", "제품 리뷰", "비교/추천", "사용후기", "장기 캠페인")
+    cpm_krw : int, optional
+        1,000뷰당 비용 (기본값: 30,000원)
 
     Returns:
     --------
@@ -54,7 +57,6 @@ def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
     """
 
     # STEP 1: CPM 기반 기본 비용 계산
-    cpm_krw = 39000  # 1,000뷰당 비용
     base_cost_cpm = (avg_views / 1000) * cpm_krw
 
     # STEP 2: 최근 90일 CPM 계산 (선택적)
@@ -163,7 +165,8 @@ def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
 def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
                           avg_likes, avg_comments,
                           recent_90day_avg_views=None,
-                          content_format="기본"):
+                          content_format="기본",
+                          cpm_krw=30000):
     """
     한국 시장 기준 광고 비용 산출 로직 - v4.0
 
@@ -183,6 +186,8 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
         최근 90일 평균 조회수
     content_format : str, optional
         콘텐츠 포맷
+    cpm_krw : int, optional
+        1,000뷰당 비용 (기본값: 30,000원)
 
     Returns:
     --------
@@ -193,7 +198,7 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
     global_cost = estimate_ad_cost_global(
         subscriber_count, avg_views, engagement_rate,
         avg_likes, avg_comments,
-        recent_90day_avg_views, content_format
+        recent_90day_avg_views, content_format, cpm_krw
     )
 
     # STEP 10: 한국 시장 조정 계수
