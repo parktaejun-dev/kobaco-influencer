@@ -1,6 +1,14 @@
 """
-유튜브 인플루언서 광고 비용 산출 모듈 (v4.1)
+유튜브 인플루언서 광고 비용 산출 모듈 (v4.2)
 2024-2025년 글로벌 벤치마크(PageOne Formula, Shopify, Descript 등) 기준 적용
+
+v4.2 개선사항 (2025-11):
+- 티어별 최소 보장 금액 합리화
+  * Micro: 250만→200만 (-20%)
+  * Mid-tier: 520만→400만 (-23%)
+  * Macro: 1,950만→1,000만 (-49%)
+  * Mega: 4,750만→1,500만 (-68%)
+- CPM 우선 작동, 티어는 보조 역할로 조정
 
 v4.1 개선사항:
 - 콘텐츠 포맷 프리미엄 제거 (PPL 단일 기준)
@@ -30,9 +38,10 @@ def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
                             recent_90day_avg_views=None,
                             cpm_krw=30000):
     """
-    글로벌 표준 광고 비용 산출 로직 (CPM 기반) - v4.1
+    글로벌 표준 광고 비용 산출 로직 (CPM 기반) - v4.2
 
     브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 단순 노출)
+    v4.2: 티어별 최소 보장 금액 합리화 (Mega 4,750만→1,500만)
 
     Parameters:
     -----------
@@ -64,17 +73,17 @@ def estimate_ad_cost_global(subscriber_count, avg_views, engagement_rate,
     if recent_90day_avg_views and recent_90day_avg_views > 0:
         recent_cpm_cost = (recent_90day_avg_views / 1000) * cpm_krw
 
-    # STEP 3: 티어별 최소 보장 금액
+    # STEP 3: 티어별 최소 보장 금액 (v4.2 - 합리화)
     if subscriber_count < 10000:
-        tier_base = 350000      # Nano: 1K-10K
+        tier_base = 350000      # Nano: 1K-10K (유지)
     elif subscriber_count < 100000:
-        tier_base = 2500000     # Micro: 10K-100K
+        tier_base = 2000000     # Micro: 10K-100K (250만→200만)
     elif subscriber_count < 500000:
-        tier_base = 5200000     # Mid-tier: 100K-500K
+        tier_base = 4000000     # Mid-tier: 100K-500K (520만→400만)
     elif subscriber_count < 1000000:
-        tier_base = 19500000    # Macro: 500K-1M
+        tier_base = 10000000    # Macro: 500K-1M (1,950만→1,000만)
     else:
-        tier_base = 47500000    # Mega: 1M+
+        tier_base = 15000000    # Mega: 1M+ (4,750만→1,500만)
 
     # STEP 4: 기본 비용 결정 (세 값 중 최댓값)
     if recent_cpm_cost > 0:
@@ -154,9 +163,10 @@ def estimate_ad_cost_korea(subscriber_count, avg_views, engagement_rate,
                           recent_90day_avg_views=None,
                           cpm_krw=30000):
     """
-    한국 시장 기준 광고 비용 산출 로직 - v4.1
+    한국 시장 기준 광고 비용 산출 로직 - v4.2
 
     브랜디드 PPL 기준 (제품 1개당 30초~1분 내외 단순 노출)
+    v4.2: 티어별 최소 보장 금액 합리화
 
     Parameters:
     -----------
