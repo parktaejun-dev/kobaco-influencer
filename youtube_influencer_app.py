@@ -699,49 +699,28 @@ if youtube_api_loaded and youtube_api_key:
 
                                 # 대형 브랜드 안전성 카드
                                 st.markdown(f"""
-                                <div style="
-                                    background: linear-gradient(135deg, {safety_bg} 0%, #ffffff 100%);
-                                    padding: 30px;
-                                    border-radius: 15px;
-                                    border: 3px solid {safety_border};
-                                    margin: 20px 0;
-                                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                                ">
-                                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                                        <!-- 왼쪽: 점수 -->
-                                        <div style="flex: 1; text-align: center;">
-                                            <div style="font-size: 5em; margin-bottom: 10px;">{safety_emoji}</div>
-                                            <div style="font-size: 3.5em; font-weight: bold; color: {safety_color}; margin-bottom: 10px;">
-                                                {safety_score}<span style="font-size: 0.5em; opacity: 0.7;">/100</span>
-                                            </div>
-                                            <div style="font-size: 1.3em; color: {safety_color}; font-weight: bold;">
-                                                {safety_status}
-                                            </div>
-                                        </div>
-
-                                        <!-- 중간: 구분선 -->
-                                        <div style="width: 2px; height: 150px; background: rgba(0,0,0,0.1); margin: 0 30px;"></div>
-
-                                        <!-- 오른쪽: 정보 -->
-                                        <div style="flex: 2;">
-                                            <div style="
-                                                background-color: {action_color};
-                                                color: white;
-                                                padding: 15px 25px;
-                                                border-radius: 10px;
-                                                font-size: 1.5em;
-                                                font-weight: bold;
-                                                text-align: center;
-                                                margin-bottom: 20px;
-                                            ">
-                                                {action_badge}
-                                            </div>
-                                            <div style="font-size: 1.1em; line-height: 1.6; color: #333;">
-                                                <strong>평가:</strong> {ai_result['recommendation']['reason']}
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+<div style="background: linear-gradient(135deg, {safety_bg} 0%, #ffffff 100%); padding: 30px; border-radius: 15px; border: 3px solid {safety_border}; margin: 20px 0; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <div style="flex: 1; text-align: center;">
+            <div style="font-size: 5em; margin-bottom: 10px;">{safety_emoji}</div>
+            <div style="font-size: 3.5em; font-weight: bold; color: {safety_color}; margin-bottom: 10px;">
+                {safety_score}<span style="font-size: 0.5em; opacity: 0.7;">/100</span>
+            </div>
+            <div style="font-size: 1.3em; color: {safety_color}; font-weight: bold;">
+                {safety_status}
+            </div>
+        </div>
+        <div style="width: 2px; height: 150px; background: rgba(0,0,0,0.1); margin: 0 30px;"></div>
+        <div style="flex: 2;">
+            <div style="background-color: {action_color}; color: white; padding: 15px 25px; border-radius: 10px; font-size: 1.5em; font-weight: bold; text-align: center; margin-bottom: 20px;">
+                {action_badge}
+            </div>
+            <div style="font-size: 1.1em; line-height: 1.6; color: #333;">
+                <strong>평가:</strong> {ai_result['recommendation']['reason']}
+            </div>
+        </div>
+    </div>
+</div>
                                 """, unsafe_allow_html=True)
 
                                 # 브랜드 안전성 체크리스트
