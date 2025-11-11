@@ -58,6 +58,60 @@ st.markdown("""
     background-color: rgba(76, 175, 80, 0.1);
 }
 
+/* 다크모드 개선 */
+[data-theme="dark"] .info-box,
+[data-theme="dark"] .warning-box,
+[data-theme="dark"] .success-box,
+[data-theme="dark"] .ai-box {
+    color: #ffffff !important;
+}
+
+[data-theme="dark"] .info-box {
+    background-color: rgba(25, 118, 210, 0.2);
+}
+
+[data-theme="dark"] .warning-box {
+    background-color: rgba(255, 152, 0, 0.2);
+}
+
+[data-theme="dark"] .success-box {
+    background-color: rgba(76, 175, 80, 0.2);
+}
+
+[data-theme="dark"] .cost-label,
+[data-theme="dark"] small,
+[data-theme="dark"] .caption {
+    color: #e0e0e0 !important;
+}
+
+[data-theme="dark"] div[style*="color: #666"],
+[data-theme="dark"] div[style*="color: #555"],
+[data-theme="dark"] div[style*="color: #333"] {
+    color: #e0e0e0 !important;
+}
+
+@media (prefers-color-scheme: dark) {
+    .info-box, .warning-box, .success-box, .ai-box {
+        color: #ffffff !important;
+    }
+
+    .info-box {
+        background-color: rgba(25, 118, 210, 0.2);
+    }
+
+    .warning-box {
+        background-color: rgba(255, 152, 0, 0.2);
+    }
+
+    .success-box {
+        background-color: rgba(76, 175, 80, 0.2);
+    }
+
+    .cost-label, small, .caption {
+        color: #e0e0e0 !important;
+    }
+}
+
 /* AI 분석 박스 */
 .ai-box {
     padding: 20px;
@@ -378,6 +432,34 @@ if youtube_api_loaded and youtube_api_key:
                             channel_age_days=None,
                             cpm_krw=cpm_value
                         )
+
+                        # === AI 분석 버튼 (상단 배치) ===
+                        st.markdown("---")
+                        if GEMINI_AVAILABLE and gemini_api_loaded:
+                            st.markdown("""
+                            <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
+                                        padding: 20px;
+                                        border-radius: 12px;
+                                        text-align: center;
+                                        margin: 20px 0;
+                                        box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                                <div style="color: white; font-size: 1.3em; font-weight: bold; margin-bottom: 10px;">
+                                    🤖 AI 브랜드세이프티 분석
+                                </div>
+                                <div style="color: rgba(255,255,255,0.9); font-size: 1em; margin-bottom: 15px;">
+                                    Gemini AI가 채널의 브랜드 안전성을 자동으로 분석합니다
+                                </div>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                            ai_button_clicked = st.button(
+                                "🤖 AI 분석 시작",
+                                type="primary",
+                                use_container_width=True,
+                                key="ai_analysis_btn_top"
+                            )
+                        else:
+                            ai_button_clicked = False
 
                         # === 결과 표시 ===
                         st.markdown("---")
@@ -777,12 +859,6 @@ if youtube_api_loaded and youtube_api_key:
                             st.write("• 최근 90일 CPM 계산 (죽은 채널 방지)")
                             st.write("• 참여 질 보정: 댓글/좋아요 비율 분석")
                             st.caption("데이터 출처: PageOne Formula, Shopify, Descript, ADOPTER Media (2024-2025)")
-
-                        # AI 분석 버튼
-                        st.markdown("---")
-                        ai_button_clicked = False
-                        if GEMINI_AVAILABLE and gemini_api_loaded:
-                            ai_button_clicked = st.button("🤖 AI 분석 시작", type="primary", use_container_width=True, key="ai_analysis_btn")
 
                         # AI 분석 실행 (버튼이 클릭되었을 때)
                         if GEMINI_AVAILABLE and gemini_api_loaded and ai_button_clicked:
