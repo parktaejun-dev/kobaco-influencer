@@ -481,20 +481,22 @@ if youtube_api_loaded and youtube_api_key:
                     # === AI 분석 버튼 (상단 배치) ===
                     st.markdown("---")
                     if GEMINI_AVAILABLE and gemini_api_loaded:
+                        # 하늘색 버튼 스타일 적용
                         st.markdown("""
-                        <div style="background: linear-gradient(135deg, #1976d2 0%, #1565c0 100%);
-                                    padding: 20px;
-                                    border-radius: 12px;
-                                    text-align: center;
-                                    margin: 20px 0;
-                                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                            <div style="color: white; font-size: 1.3em; font-weight: bold; margin-bottom: 10px;">
-                                🤖 AI 브랜드세이프티 분석
-                            </div>
-                            <div style="color: rgba(255,255,255,0.9); font-size: 1em; margin-bottom: 15px;">
-                                Gemini AI가 채널의 브랜드 안전성을 자동으로 분석합니다
-                            </div>
-                        </div>
+                        <style>
+                        div[data-testid="stButton"] > button[kind="primary"] {
+                            background: linear-gradient(135deg, #42a5f5 0%, #1e88e5 100%) !important;
+                            border: none !important;
+                            font-size: 1.2em !important;
+                            font-weight: bold !important;
+                            padding: 15px !important;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1) !important;
+                        }
+                        div[data-testid="stButton"] > button[kind="primary"]:hover {
+                            background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%) !important;
+                            box-shadow: 0 6px 8px rgba(0,0,0,0.15) !important;
+                        }
+                        </style>
                         """, unsafe_allow_html=True)
 
                         ai_button_clicked = st.button(
@@ -503,8 +505,12 @@ if youtube_api_loaded and youtube_api_key:
                             use_container_width=True,
                             key="ai_analysis_btn_top"
                         )
+
+                        # 버튼 바로 아래 애니메이션 placeholder
+                        progress_placeholder_top = st.empty()
                     else:
                         ai_button_clicked = False
+                        progress_placeholder_top = None
 
                     # === 결과 표시 ===
                     st.markdown("---")
@@ -907,12 +913,33 @@ if youtube_api_loaded and youtube_api_key:
 
                     # AI 분석 실행 (버튼이 클릭되었을 때)
                     if GEMINI_AVAILABLE and gemini_api_loaded and ai_button_clicked:
+                        # 상단 애니메이션 표시 (버튼 바로 밑)
+                        if progress_placeholder_top:
+                            progress_placeholder_top.markdown("""
+                                <div class="analyzing" style="
+                                    background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
+                                    padding: 20px;
+                                    border-radius: 12px;
+                                    border-left: 5px solid #1976d2;
+                                    text-align: center;
+                                    margin-top: 15px;
+                                ">
+                                    <div class="spinner" style="font-size: 3em; margin-bottom: 15px;">🤖</div>
+                                    <div style="font-size: 1.2em; font-weight: bold; color: #1976d2; margin-bottom: 10px;">
+                                        AI 분석 진행 중...
+                                    </div>
+                                    <div style="font-size: 1em; color: #666;">
+                                        브랜드 안전성 검사 및 광고 효과 예측 중입니다 (약 10초 소요)
+                                    </div>
+                                </div>
+                                """, unsafe_allow_html=True)
+
                         st.markdown("---")
                         st.subheader("🤖 AI 브랜드세이프티 점검")
 
-                        # 프로그레스 표시
-                        progress_placeholder = st.empty()
-                        progress_placeholder.markdown("""
+                        # 하단 애니메이션 표시
+                        progress_placeholder_bottom = st.empty()
+                        progress_placeholder_bottom.markdown("""
                             <div class="analyzing" style="
                                 background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%);
                                 padding: 20px;
@@ -941,8 +968,10 @@ if youtube_api_loaded and youtube_api_key:
                             gemini_api_loaded
                         )
 
-                        # 프로그레스 제거
-                        progress_placeholder.empty()
+                        # 모든 애니메이션 제거
+                        if progress_placeholder_top:
+                            progress_placeholder_top.empty()
+                        progress_placeholder_bottom.empty()
 
                         # 에러 처리
                         if ai_result and "error" in ai_result:
