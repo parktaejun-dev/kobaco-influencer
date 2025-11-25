@@ -172,6 +172,145 @@ st.markdown("""
 .check-item-animated {
     animation: checkFade 0.5s ease-out;
 }
+
+/* 툴팁 스타일 */
+.tooltip-container {
+    position: relative;
+    display: inline-block;
+    margin-left: 5px;
+    cursor: help;
+}
+
+.tooltip-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background-color: rgba(25, 118, 210, 0.1);
+    border: 1px solid rgba(25, 118, 210, 0.3);
+    color: #1976d2;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: help;
+    transition: all 0.3s ease;
+}
+
+.tooltip-icon:hover {
+    background-color: rgba(25, 118, 210, 0.2);
+    border-color: rgba(25, 118, 210, 0.5);
+    transform: scale(1.1);
+}
+
+.tooltip-text {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    z-index: 1000;
+    background-color: #333;
+    color: #fff;
+    text-align: left;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    width: 320px;
+    bottom: 125%;
+    left: 50%;
+    transform: translateX(-50%);
+    transition: opacity 0.3s, visibility 0.3s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.tooltip-text::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -6px;
+    border-width: 6px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+.tooltip-text strong {
+    color: #4fc3f7;
+    font-weight: 600;
+}
+
+.tooltip-text .formula {
+    background-color: rgba(79, 195, 247, 0.1);
+    padding: 4px 8px;
+    border-radius: 4px;
+    display: inline-block;
+    margin: 4px 0;
+    font-family: 'Courier New', monospace;
+}
+
+.tooltip-text .benchmark {
+    color: #81c784;
+    font-weight: 500;
+}
+
+.tooltip-text .warning {
+    color: #ffb74d;
+}
+
+/* 다크모드 툴팁 스타일 */
+[data-theme="dark"] .tooltip-icon {
+    background-color: rgba(100, 181, 246, 0.15);
+    border-color: rgba(100, 181, 246, 0.4);
+    color: #64b5f6;
+}
+
+[data-theme="dark"] .tooltip-icon:hover {
+    background-color: rgba(100, 181, 246, 0.25);
+    border-color: rgba(100, 181, 246, 0.6);
+}
+
+[data-theme="dark"] .tooltip-text {
+    background-color: #1a1a1a;
+    border: 1px solid rgba(100, 181, 246, 0.3);
+}
+
+[data-theme="dark"] .tooltip-text::after {
+    border-color: #1a1a1a transparent transparent transparent;
+}
+
+@media (prefers-color-scheme: dark) {
+    .tooltip-icon {
+        background-color: rgba(100, 181, 246, 0.15);
+        border-color: rgba(100, 181, 246, 0.4);
+        color: #64b5f6;
+    }
+
+    .tooltip-icon:hover {
+        background-color: rgba(100, 181, 246, 0.25);
+        border-color: rgba(100, 181, 246, 0.6);
+    }
+
+    .tooltip-text {
+        background-color: #1a1a1a;
+        border: 1px solid rgba(100, 181, 246, 0.3);
+    }
+
+    .tooltip-text::after {
+        border-color: #1a1a1a transparent transparent transparent;
+    }
+}
+
+/* 메트릭 헤더 툴팁 (inline) */
+.metric-with-tooltip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -580,10 +719,123 @@ if youtube_api_loaded and youtube_api_key:
 
                     st.markdown("**최근 10개 영상 상세 지표:**")
                     metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
-                    metric_col1.metric("평균 조회수", format_number(int(recent_avg_views)))
-                    metric_col2.metric("평균 참여율", f"{avg_engagement_rate:.2f}%")
-                    metric_col3.metric("평균 좋아요", format_number(avg_likes))
-                    metric_col4.metric("평균 댓글", format_number(avg_comments))
+
+                    # 평균 조회수
+                    with metric_col1:
+                        st.markdown(f"""
+                        <div style="padding: 10px; background: rgba(0,0,0,0.02); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                <span style="font-size: 0.85em; color: #666;">평균 조회수</span>
+                                <div class="tooltip-container">
+                                    <div class="tooltip-icon">?</div>
+                                    <div class="tooltip-text">
+                                        <strong>평균 조회수란?</strong><br>
+                                        최근 10개 영상의 평균 조회수입니다.<br><br>
+                                        <strong>의미:</strong><br>
+                                        • 채널의 현재 인기도와 도달 범위를 나타냅니다<br>
+                                        • 광고 노출 효과를 가늠하는 핵심 지표<br><br>
+                                        <span class="benchmark">✓ 건강한 기준:</span><br>
+                                        • 구독자의 <strong>10-30%</strong> 수준이 정상<br>
+                                        • 예) 10만 구독자 → 1만~3만 조회수<br><br>
+                                        <span class="warning">⚠ 주의:</span><br>
+                                        조회수가 구독자의 5% 미만이면 채널이 약화된 상태입니다.
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #0066cc;">
+                                {format_number(int(recent_avg_views))}회
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    # 평균 참여율
+                    with metric_col2:
+                        st.markdown(f"""
+                        <div style="padding: 10px; background: rgba(0,0,0,0.02); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                <span style="font-size: 0.85em; color: #666;">평균 참여율</span>
+                                <div class="tooltip-container">
+                                    <div class="tooltip-icon">?</div>
+                                    <div class="tooltip-text">
+                                        <strong>평균 참여율이란?</strong><br>
+                                        <div class="formula">(좋아요 + 댓글) ÷ 조회수 × 100</div><br>
+                                        <strong>의미:</strong><br>
+                                        • 시청자가 얼마나 적극적으로 반응하는지 측정<br>
+                                        • 콘텐츠 품질과 시청자 몰입도를 나타냄<br><br>
+                                        <span class="benchmark">✓ 등급 기준:</span><br>
+                                        • <strong>7% 이상:</strong> 최상 (매우 우수)<br>
+                                        • <strong>5-7%:</strong> 매우 높음<br>
+                                        • <strong>4-5%:</strong> 높음<br>
+                                        • <strong>3-4%:</strong> 양호<br>
+                                        • <strong>2-3%:</strong> 보통<br>
+                                        • <strong>1-2%:</strong> 낮음<br>
+                                        • <strong>1% 미만:</strong> 매우 낮음<br><br>
+                                        참여율이 높을수록 광고 효과가 좋습니다!
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #0066cc;">
+                                {avg_engagement_rate:.2f}%
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    # 평균 좋아요
+                    with metric_col3:
+                        st.markdown(f"""
+                        <div style="padding: 10px; background: rgba(0,0,0,0.02); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                <span style="font-size: 0.85em; color: #666;">평균 좋아요</span>
+                                <div class="tooltip-container">
+                                    <div class="tooltip-icon">?</div>
+                                    <div class="tooltip-text">
+                                        <strong>평균 좋아요란?</strong><br>
+                                        최근 10개 영상의 평균 좋아요 개수입니다.<br><br>
+                                        <strong>의미:</strong><br>
+                                        • 콘텐츠에 대한 시청자 만족도<br>
+                                        • 긍정적 반응의 정도를 나타냄<br><br>
+                                        <span class="benchmark">✓ 일반적 기준:</span><br>
+                                        • 조회수의 <strong>3-5%</strong>가 양호<br>
+                                        • 예) 10만 조회수 → 3천~5천 좋아요<br><br>
+                                        <strong>참고:</strong><br>
+                                        좋아요 수가 많다고 항상 좋은 것은 아닙니다. 댓글과 함께 봐야 진정한 참여도를 알 수 있습니다.
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #0066cc;">
+                                {format_number(avg_likes)}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                    # 평균 댓글
+                    with metric_col4:
+                        st.markdown(f"""
+                        <div style="padding: 10px; background: rgba(0,0,0,0.02); border-radius: 8px;">
+                            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                                <span style="font-size: 0.85em; color: #666;">평균 댓글</span>
+                                <div class="tooltip-container">
+                                    <div class="tooltip-icon">?</div>
+                                    <div class="tooltip-text">
+                                        <strong>평균 댓글이란?</strong><br>
+                                        최근 10개 영상의 평균 댓글 개수입니다.<br><br>
+                                        <strong>의미:</strong><br>
+                                        • 커뮤니티의 활성화 정도<br>
+                                        • 시청자와 크리에이터 간 소통 수준<br>
+                                        • 진정한 팬층의 존재 여부<br><br>
+                                        <span class="benchmark">✓ 건강한 기준:</span><br>
+                                        • 조회수의 <strong>0.3-0.5%</strong>가 양호<br>
+                                        • 예) 10만 조회수 → 300~500 댓글<br><br>
+                                        <strong>중요:</strong><br>
+                                        댓글이 많은 채널은 광고 효과가 높습니다. 시청자가 적극적으로 참여하고 있다는 증거입니다!
+                                    </div>
+                                </div>
+                            </div>
+                            <div style="font-size: 1.5em; font-weight: bold; color: #0066cc;">
+                                {format_number(avg_comments)}
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
 
                     # 참여 질 분석
                     comment_like_ratio = (avg_comments / avg_likes * 100) if avg_likes > 0 else 0
@@ -606,7 +858,31 @@ if youtube_api_loaded and youtube_api_key:
 
                     st.markdown(f"""
                     <div class="{box_class}">
-                        <strong>🎯 참여 질 분석: {quality_emoji} {quality_text}</strong><br>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
+                            <strong style="font-size: 1.05em;">🎯 참여 질 분석: {quality_emoji} {quality_text}</strong>
+                            <div class="tooltip-container">
+                                <div class="tooltip-icon">?</div>
+                                <div class="tooltip-text" style="width: 360px;">
+                                    <strong>참여 질 분석이란?</strong><br>
+                                    <div class="formula">댓글 ÷ 좋아요 × 100</div><br>
+                                    <strong>의미:</strong><br>
+                                    진짜 팬과 이벤트 참여자를 구분하는 핵심 지표입니다.<br><br>
+                                    <span class="benchmark">✓ 등급 기준:</span><br>
+                                    • <strong>15% 이상:</strong> 대화형 커뮤니티 (우수)<br>
+                                    &nbsp;&nbsp;→ 좋아요 100개당 댓글 15개 이상<br>
+                                    &nbsp;&nbsp;→ 진정한 팬층, 광고 효과 최상<br><br>
+                                    • <strong>5-15%:</strong> 정상 범위<br>
+                                    &nbsp;&nbsp;→ 일반적인 참여도<br>
+                                    &nbsp;&nbsp;→ 평균적인 광고 효과<br><br>
+                                    <span class="warning">⚠ 5% 미만: 이벤트형 (저품질)</span><br>
+                                    &nbsp;&nbsp;→ "좋아요 누르면 경품" 식 유입<br>
+                                    &nbsp;&nbsp;→ 실제 콘텐츠에 관심 없음<br>
+                                    &nbsp;&nbsp;→ 광고 효과 제한적<br><br>
+                                    <strong>왜 중요한가?</strong><br>
+                                    댓글을 남기는 사람은 콘텐츠를 진지하게 시청하고, 인플루언서의 추천을 신뢰합니다!
+                                </div>
+                            </div>
+                        </div>
                         댓글/좋아요 비율: <strong>{comment_like_ratio:.2f}%</strong><br>
                         <small>{quality_desc}</small>
                     </div>
@@ -665,9 +941,36 @@ if youtube_api_loaded and youtube_api_key:
                         st.markdown(f"""
                         <div style="background: linear-gradient(135deg, rgba({int(health_color[1:3], 16)}, {int(health_color[3:5], 16)}, {int(health_color[5:7], 16)}, 0.1) 0%, #ffffff 100%); padding: 20px; border-radius: 12px; border-left: 5px solid {health_color}; margin: 15px 0;">
                             <div style="display: flex; align-items: center; justify-content: space-between;">
-                                <div>
-                                    <div style="font-size: 1.5em; font-weight: bold; color: {health_color}; margin-bottom: 5px;">
-                                        {health_emoji} 채널 건강도: {health_level}
+                                <div style="flex: 1;">
+                                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                        <div style="font-size: 1.5em; font-weight: bold; color: {health_color};">
+                                            {health_emoji} 채널 건강도: {health_level}
+                                        </div>
+                                        <div class="tooltip-container">
+                                            <div class="tooltip-icon" style="background-color: rgba({int(health_color[1:3], 16)}, {int(health_color[3:5], 16)}, {int(health_color[5:7], 16)}, 0.15); border-color: {health_color}; color: {health_color};">?</div>
+                                            <div class="tooltip-text" style="width: 360px;">
+                                                <strong>채널 건강도란?</strong><br>
+                                                <div class="formula">평균 조회수 ÷ 구독자 수 × 100</div><br>
+                                                <strong>의미:</strong><br>
+                                                구독자가 실제로 영상을 시청하는지 측정하는 지표입니다.<br><br>
+                                                <span class="benchmark">✓ 등급 기준:</span><br>
+                                                • <strong>30% 이상:</strong> 🔥 초건강 (×1.20)<br>
+                                                • <strong>20-30%:</strong> ✅ 매우 건강 (×1.15)<br>
+                                                • <strong>15-20%:</strong> ✅ 건강 (×1.10)<br>
+                                                • <strong>10-15%:</strong> ⚖️ 정상 (×1.00)<br>
+                                                • <strong>7-10%:</strong> ⚠️ 약간 약화 (×0.85)<br>
+                                                • <strong>5-7%:</strong> ⚠️ 약화 (×0.70)<br>
+                                                • <strong>3-5%:</strong> 🟡 죽어감 (×0.50)<br>
+                                                • <strong>3% 미만:</strong> 🔴 죽음 (×0.30)<br><br>
+                                                <strong>예시:</strong><br>
+                                                10만 구독자 채널의 경우<br>
+                                                • 건강: 1.5만~2만 조회수<br>
+                                                • 정상: 1만~1.5만 조회수<br>
+                                                • 약화: 5천~7천 조회수<br><br>
+                                                <strong>왜 중요한가?</strong><br>
+                                                구독자는 과거의 영광일 수 있습니다. 실제 광고 효과는 현재 조회수로 결정됩니다!
+                                            </div>
+                                        </div>
                                     </div>
                                     <div style="font-size: 1em; color: #666;">
                                         조회수/구독자 비율: <strong>{health_ratio:.2f}%</strong> |
@@ -728,8 +1031,25 @@ if youtube_api_loaded and youtube_api_key:
                             health = premium_details['health']
                             st.markdown(f"""
                             <div style="background: rgba(255, 107, 53, 0.05); padding: 15px; border-radius: 8px; border-left: 4px solid {health['color']}; margin-bottom: 10px;">
-                                <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">
-                                    {health['emoji']} 채널 건강도
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                                    <div style="font-size: 1.1em; font-weight: bold;">
+                                        {health['emoji']} 채널 건강도
+                                    </div>
+                                    <div class="tooltip-container">
+                                        <div class="tooltip-icon">?</div>
+                                        <div class="tooltip-text" style="width: 340px;">
+                                            <strong>채널 건강도란?</strong><br>
+                                            평균 조회수가 구독자 수 대비 얼마나 되는지 측정합니다.<br><br>
+                                            <span class="benchmark">✓ 등급:</span><br>
+                                            • 초건강 (30%+): ×1.20<br>
+                                            • 매우 건강 (20-30%): ×1.15<br>
+                                            • 건강 (15-20%): ×1.10<br>
+                                            • 정상 (10-15%): ×1.00<br>
+                                            • 약화 (5-10%): ×0.70~0.85<br>
+                                            • 죽어감 (5% 미만): ×0.30~0.50<br><br>
+                                            건강할수록 광고 비용이 올라갑니다!
+                                        </div>
+                                    </div>
                                 </div>
                                 <div style="color: #555; margin-bottom: 5px;">
                                     상태: <strong>{health['level']}</strong> (×{health['multiplier']})
@@ -744,8 +1064,25 @@ if youtube_api_loaded and youtube_api_key:
                             consistency = premium_details['consistency']
                             st.markdown(f"""
                             <div style="background: rgba(76, 175, 80, 0.05); padding: 15px; border-radius: 8px; border-left: 4px solid #4caf50; margin-bottom: 10px;">
-                                <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">
-                                    🎯 업로드 일관성
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                                    <div style="font-size: 1.1em; font-weight: bold;">
+                                        🎯 업로드 일관성
+                                    </div>
+                                    <div class="tooltip-container">
+                                        <div class="tooltip-icon">?</div>
+                                        <div class="tooltip-text" style="width: 340px;">
+                                            <strong>업로드 일관성이란?</strong><br>
+                                            채널이 얼마나 꾸준히 영상을 올리는지 측정합니다.<br><br>
+                                            <div class="formula">영상 수 ÷ 채널 개설 일수</div><br>
+                                            <span class="benchmark">✓ 등급:</span><br>
+                                            • <strong>매우 규칙적:</strong> 주 7회 이상 (×1.08)<br>
+                                            • <strong>규칙적:</strong> 주 3-7회 (×1.05)<br>
+                                            • <strong>보통:</strong> 주 1-3회 (×1.00)<br>
+                                            • <strong>불규칙:</strong> 월 1-4회 (×0.97)<br>
+                                            • <strong>비활성:</strong> 월 1회 미만 (×0.90)<br><br>
+                                            규칙적인 채널은 구독자 이탈이 적고, 광고 효과가 오래 지속됩니다!
+                                        </div>
+                                    </div>
                                 </div>
                                 <div style="color: #555; margin-bottom: 5px;">
                                     빈도: <strong>{consistency['upload_frequency']}</strong> (×{consistency['multiplier']})
@@ -761,8 +1098,26 @@ if youtube_api_loaded and youtube_api_key:
                             growth = premium_details['growth']
                             st.markdown(f"""
                             <div style="background: rgba(33, 150, 243, 0.05); padding: 15px; border-radius: 8px; border-left: 4px solid #2196f3; margin-bottom: 10px;">
-                                <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">
-                                    📈 성장세
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                                    <div style="font-size: 1.1em; font-weight: bold;">
+                                        📈 성장세
+                                    </div>
+                                    <div class="tooltip-container">
+                                        <div class="tooltip-icon">?</div>
+                                        <div class="tooltip-text" style="width: 340px;">
+                                            <strong>성장세란?</strong><br>
+                                            최근 90일 조회수를 전체 평균과 비교하여 채널이 성장 중인지 판단합니다.<br><br>
+                                            <div class="formula">최근 90일 평균 ÷ 전체 평균 × 100</div><br>
+                                            <span class="benchmark">✓ 등급:</span><br>
+                                            • <strong>급성장:</strong> 최근이 50% 이상 높음 (×1.15)<br>
+                                            • <strong>성장:</strong> 최근이 20-50% 높음 (×1.10)<br>
+                                            • <strong>약성장:</strong> 최근이 5-20% 높음 (×1.05)<br>
+                                            • <strong>안정:</strong> ±5% 이내 (×1.00)<br>
+                                            • <strong>하락:</strong> 최근이 5-20% 낮음 (×0.95)<br>
+                                            • <strong>급락:</strong> 최근이 20% 이상 낮음 (×0.85)<br><br>
+                                            성장 중인 채널은 미래 가치가 높아 프리미엄이 붙습니다!
+                                        </div>
+                                    </div>
                                 </div>
                                 <div style="color: #555; margin-bottom: 5px;">
                                     상태: <strong>{growth['status']}</strong> (×{growth['multiplier']})
@@ -777,8 +1132,28 @@ if youtube_api_loaded and youtube_api_key:
                             loyalty = premium_details['loyalty']
                             st.markdown(f"""
                             <div style="background: rgba(156, 39, 176, 0.05); padding: 15px; border-radius: 8px; border-left: 4px solid #9c27b0; margin-bottom: 10px;">
-                                <div style="font-size: 1.1em; font-weight: bold; margin-bottom: 5px;">
-                                    💬 팬덤 충성도
+                                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 5px;">
+                                    <div style="font-size: 1.1em; font-weight: bold;">
+                                        💬 팬덤 충성도
+                                    </div>
+                                    <div class="tooltip-container">
+                                        <div class="tooltip-icon">?</div>
+                                        <div class="tooltip-text" style="width: 340px;">
+                                            <strong>팬덤 충성도란?</strong><br>
+                                            댓글 비율을 통해 팬층이 얼마나 충성스러운지 측정합니다.<br><br>
+                                            <div class="formula">(댓글 수 ÷ 조회수) × 100</div><br>
+                                            <span class="benchmark">✓ 등급:</span><br>
+                                            • <strong>최상:</strong> 0.5% 이상 (×1.10)<br>
+                                            &nbsp;&nbsp;→ 조회수 1만당 댓글 50개 이상<br>
+                                            • <strong>우수:</strong> 0.3-0.5% (×1.05)<br>
+                                            &nbsp;&nbsp;→ 조회수 1만당 댓글 30-50개<br>
+                                            • <strong>양호:</strong> 0.1-0.3% (×1.00)<br>
+                                            &nbsp;&nbsp;→ 조회수 1만당 댓글 10-30개<br>
+                                            • <strong>낮음:</strong> 0.1% 미만 (×0.97)<br>
+                                            &nbsp;&nbsp;→ 조회수 1만당 댓글 10개 미만<br><br>
+                                            댓글이 많은 채널은 진성 팬이 많아 광고 효과가 높습니다!
+                                        </div>
+                                    </div>
                                 </div>
                                 <div style="color: #555; margin-bottom: 5px;">
                                     상태: <strong>{loyalty['status']}</strong> (×{loyalty['multiplier']})
